@@ -1,0 +1,90 @@
+// Job Hunter – single-user job hunting assistant
+// PostgreSQL via Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Single-user: one record; id can be fixed or from future auth
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profile   UserProfile?
+}
+
+model UserProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String?
+  targetRole        String?  // e.g. "Software Engineer"
+  experienceSummary String?  @map("experience_summary")
+  skills            String?  // JSON array or comma-separated
+  resumeText        String?  @map("resume_text") // Extracted text for AI
+  resumeFileName    String?  @map("resume_file_name")
+  resumeStoragePath String?  @map("resume_storage_path") // Local or blob path
+  customQa          Json?    @map("custom_qa") // [{ question, answer }]
+  preferences       String?  // Free-form or JSON
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// One record per uploaded spreadsheet
+model Upload {
+  id          String   @id @default(cuid())
+  fileName    String   @map("file_name")
+  storagePath String?  @map("storage_path") // If we keep original file
+  rowCount    Int      @map("row_count")
+  headerRow   Json     @map("header_row") // ["Col A", "Col B", ...]
+  createdAt   DateTime @default(now())
+  columns    ColumnMapping[]
+  rows        CompanyRow[]
+}
+
+// Maps column index (and original header) to semantic meaning
+// No hardcoded column names; meaning is inferred per upload
+model ColumnMapping {
+  id          String   @id @default(cuid())
+  uploadId    String   @map("upload_id")
+  upload      Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  columnIndex Int      @map("column_index") // 0-based
+  headerName  String   @map("header_name")  // Original header
+  semanticKey String   @map("semantic_key") // company_name | website | email | phone | role | notes | other
+  confidence  Float?   // 0-1 from inference
+}
+
+// One row per company (one record per spreadsheet row after header)
+// Flexible schema: key = semantic_key from mapping, value = cell value
+model CompanyRow {
+  id        String   @id @default(cuid())
+  uploadId  String   @map("upload_id")
+  upload    Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  rowIndex  Int      @map("row_index") // 0-based row in sheet
+  data      Json     // { company_name: "...", email: "...", ... } by semantic key
+  createdAt DateTime @default(now())
+}
+
+// Optional: save frequently used or template prompts
+model SavedPrompt {
+  id          String   @id @default(cuid())
+  name        String?
+  promptText  String   @map("prompt_text")
+  intentHint  String?  @map("intent_hint") // cold_email | cover_letter | research | interview_qa | custom
+  createdAt   DateTime @default(now())
+}
+
+// Optional: store generated outputs for history/copy
+model GeneratedOutput {
+  id          String   @id @default(cuid())
+  promptUsed  String   @map("prompt_used")
+  request     String?  // User's free-form request
+  output      String   @db.Text
+  companyIds  String[] @map("company_ids") // CompanyRow ids used
+  createdAt   DateTime @default(now())
+}
