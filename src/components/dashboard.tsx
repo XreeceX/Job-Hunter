@@ -41,17 +41,32 @@ export interface UploadDetail {
 
 export function Dashboard() {
   const [uploads, setUploads] = useState<UploadSummary[]>([]);
+  const [uploadsLoading, setUploadsLoading] = useState(true);
+  const [uploadsError, setUploadsError] = useState<string | null>(null);
   const [selectedUploadId, setSelectedUploadId] = useState<string | null>(null);
   const [uploadDetail, setUploadDetail] = useState<UploadDetail | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
   const [profileOpen, setProfileOpen] = useState(false);
 
   const fetchUploads = useCallback(async () => {
-    const res = await fetch('/api/uploads');
-    if (res.ok) {
-      const { uploads: list } = await res.json();
-      setUploads(list ?? []);
-      if (list?.length && !selectedUploadId) setSelectedUploadId(list[0].id);
+    setUploadsError(null);
+    setUploadsLoading(true);
+    try {
+      const res = await fetch('/api/uploads');
+      const data = await res.json();
+      if (!res.ok) {
+        setUploadsError(data?.error ?? 'Failed to load uploads');
+        setUploads([]);
+        return;
+      }
+      const list = data.uploads ?? [];
+      setUploads(list);
+      if (list.length > 0 && !selectedUploadId) setSelectedUploadId(list[0].id);
+    } catch (e) {
+      setUploadsError(e instanceof Error ? e.message : 'Failed to load uploads');
+      setUploads([]);
+    } finally {
+      setUploadsLoading(false);
     }
   }, [selectedUploadId]);
 
@@ -120,7 +135,18 @@ export function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-3">
               <UploadZone onDone={onUploadDone} />
-              {uploads.length > 0 && (
+              {uploadsLoading && (
+                <p className="text-sm text-[var(--muted)]">Loading spreadsheets…</p>
+              )}
+              {uploadsError && (
+                <div className="space-y-2">
+                  <p className="text-sm text-red-400" role="alert">{uploadsError}</p>
+                  <Button variant="secondary" size="sm" onClick={() => fetchUploads()}>
+                    Retry
+                  </Button>
+                </div>
+              )}
+              {!uploadsLoading && !uploadsError && uploads.length > 0 && (
                 <div className="space-y-2">
                   <Label className="text-[var(--muted)]">Recent uploads</Label>
                   <select
@@ -135,6 +161,11 @@ export function Dashboard() {
                     ))}
                   </select>
                 </div>
+              )}
+              {!uploadsLoading && !uploadsError && uploads.length === 0 && (
+                <p className="text-sm text-[var(--muted)]">
+                  No spreadsheets yet. Upload one above — they’re stored in your database.
+                </p>
               )}
             </CardContent>
           </Card>
