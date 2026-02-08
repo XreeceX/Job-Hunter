@@ -48,18 +48,33 @@ export async function updateProfile(input: UserProfileInput) {
   });
 }
 
-/** Store resume file and optionally extract text. Caller provides buffer and mimetype. */
+/**
+ * Store resume file and optionally extract text.
+ * Uses Vercel Blob when BLOB_READ_WRITE_TOKEN is set (e.g. on Vercel); otherwise local disk.
+ */
 export async function saveResume(
   buffer: Buffer,
   fileName: string,
   mimeType: string
 ): Promise<{ path: string; extractedText: string }> {
   const profile = await getOrCreateProfile();
-  const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-  await fs.mkdir(uploadDir, { recursive: true });
   const safeName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  const storagePath = path.join(uploadDir, safeName);
-  await fs.writeFile(storagePath, buffer);
+  let storagePath: string;
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import('@vercel/blob');
+    const blob = await put(`resumes/${safeName}`, buffer, {
+      access: 'public',
+      addRandomSuffix: true,
+      contentType: mimeType || undefined,
+    });
+    storagePath = blob.url;
+  } else {
+    const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+    await fs.mkdir(uploadDir, { recursive: true });
+    storagePath = path.join(uploadDir, safeName);
+    await fs.writeFile(storagePath, buffer);
+  }
 
   let extractedText = '';
   if (mimeType === 'application/pdf') {

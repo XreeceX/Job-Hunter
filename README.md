@@ -7,7 +7,7 @@ AI-powered job hunting web app for a single user: upload spreadsheets, map colum
 - **Frontend:** Next.js 14 (App Router), React, TypeScript, Tailwind CSS
 - **Backend:** Next.js API routes
 - **Database:** PostgreSQL with Prisma
-- **AI:** OpenAI (modular; swappable)
+- **AI:** Provider-agnostic (Groq default, OpenAI optional) via `src/lib/services/ai/`
 - **Excel:** SheetJS (xlsx)
 - **Deploy:** Vercel-ready
 
@@ -25,7 +25,7 @@ AI-powered job hunting web app for a single user: upload spreadsheets, map colum
    Copy `.env.example` to `.env` and set:
 
    - `DATABASE_URL` – PostgreSQL connection string
-   - `OPENAI_API_KEY` – for AI generation (and optional column inference)
+   - **AI:** Set `LLM_PROVIDER` and the matching API key (see below).
 
 3. **Database**
 
@@ -66,3 +66,33 @@ See `ARCHITECTURE.md` for design and data flow.
 - **Research:** Select one company → Intent “Research company” → Request: “Summarize this company and role for interview prep.” → Generate.
 
 All outputs use your profile and resume and the selected company row(s); no column names are hardcoded.
+
+## AI: Local dev vs Vercel production
+
+The app uses a **provider-agnostic** AI layer (`src/lib/services/ai/`). No OpenAI (or Groq) is imported outside that folder.
+
+- **Production default (Vercel):** **Groq**  
+  Set `LLM_PROVIDER=groq` and `GROQ_API_KEY`. Groq offers a free hosted tier, OpenAI-compatible chat API, and is serverless-friendly (no cold-start issues). Default model: `llama3-70b-8192`.
+
+- **Local / fallback:** **OpenAI**  
+  Set `LLM_PROVIDER=openai` and `OPENAI_API_KEY` if you prefer GPT for generation or column inference.
+
+Only one provider is active at a time; the rest of the app calls `runLLM()` and does not depend on which provider is configured.
+
+## Running 24/7 (no Postgres on your laptop)
+
+To run the app 24/7 without keeping Postgres (or your laptop) on:
+
+1. **Deploy to Vercel**  
+   Connect the repo to Vercel and deploy. The app runs on Vercel’s infra.
+
+2. **Use a hosted database**  
+   You don’t run Postgres locally. Use a hosted Postgres and set `DATABASE_URL`:
+   - **Vercel Marketplace:** In the Vercel project, go to Storage (or Integrations), add **Neon** (or another Postgres). Vercel will add `POSTGRES_URL` or `DATABASE_URL` to the project. If the provider exposes `POSTGRES_URL`, set `DATABASE_URL` in Project Settings → Environment Variables to that value (or use the variable name your provider gives).
+   - **Any other host:** Neon, Supabase, Railway, etc. Create a database, copy the connection string, and set `DATABASE_URL` in Vercel (and in `.env` for local dev against the same DB).
+
+3. **Resume storage**  
+   On Vercel, serverless has no persistent disk. Add a **Vercel Blob** store in the project (Storage → Create → Blob). The `BLOB_READ_WRITE_TOKEN` is set automatically; resume uploads will use Blob instead of local files. For local dev, omit the token and resumes are stored in `./uploads` (or `UPLOAD_DIR`).
+
+4. **Env summary for 24/7**  
+   In Vercel: `DATABASE_URL` (hosted Postgres), `LLM_PROVIDER` + `GROQ_API_KEY` (or OpenAI), and Blob token if you use a Blob store. No need to run Postgres (or the app) on your laptop.

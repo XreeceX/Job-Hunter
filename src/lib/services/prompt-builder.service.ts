@@ -2,10 +2,10 @@
  * Prompt Builder Service
  * Builds optimized prompts for the AI from: company row(s), profile, resume, and user request.
  * Template- and intent-aware; no hardcoded column names.
+ * Includes serverless-safe size guards: resume truncation, company row limit, character budget.
  */
 
-import type { GenerateInput } from '@/lib/types';
-import type { UserProfile, CompanyRow } from '@prisma/client';
+import type { UserProfile } from '@prisma/client';
 
 export interface PromptContext {
   profile: UserProfile | null;
@@ -15,6 +15,14 @@ export interface PromptContext {
 }
 
 const SYSTEM_PREFIX = `You are an expert job search assistant. You help the user with personalized, professional content for their job hunt. Be concise, specific, and use the exact details provided. Output in the requested format (e.g. email, cover letter, markdown).`;
+
+// Serverless-friendly limits (no tokenizer; character-based soft budget)
+const MAX_COMPANY_ROWS = 10;
+const MAX_RESUME_CHARS = 3000; // Resume text: keep start (most recent experience first)
+const MAX_EXPERIENCE_CHARS = 600;
+const MAX_SKILLS_CHARS = 400;
+const MAX_QA_ITEMS = 5;
+const MAX_USER_MESSAGE_CHARS = 28_000; // ~7k tokens at ~4 chars/token; leaves room for response
 
 /**
  * Format a single company row (semantic key -> value) as readable context.
@@ -49,7 +57,7 @@ function formatCompanyContext(data: Record<string, unknown>): string {
 }
 
 /**
- * Build profile + resume snippet for context (truncate if very long).
+ * Build profile + resume snippet. Truncates by character; resume uses start (most recent experience first).
  */
 function formatProfileContext(profile: UserProfile | null): string {
   if (!profile) return 'No user profile provided.';
@@ -57,18 +65,18 @@ function formatProfileContext(profile: UserProfile | null): string {
   if (profile.name) parts.push(`Name: ${profile.name}`);
   if (profile.targetRole) parts.push(`Target role: ${profile.targetRole}`);
   if (profile.experienceSummary) {
-    parts.push(`Experience: ${profile.experienceSummary.slice(0, 800)}`);
+    parts.push(`Experience: ${profile.experienceSummary.slice(0, MAX_EXPERIENCE_CHARS)}`);
   }
-  if (profile.skills) parts.push(`Skills: ${profile.skills.slice(0, 500)}`);
+  if (profile.skills) parts.push(`Skills: ${profile.skills.slice(0, MAX_SKILLS_CHARS)}`);
   if (profile.resumeText) {
-    parts.push(`Resume (excerpt):\n${profile.resumeText.slice(0, 2000)}`);
+    parts.push(`Resume (excerpt):\n${profile.resumeText.slice(0, MAX_RESUME_CHARS)}`);
   }
   const qa = profile.customQa as Array<{ question: string; answer: string }> | null;
   if (Array.isArray(qa) && qa.length) {
     parts.push(
       'Custom Q&A: ' +
         qa
-          .slice(0, 5)
+          .slice(0, MAX_QA_ITEMS)
           .map((q) => `Q: ${q.question} A: ${q.answer}`)
           .join(' | ')
     );
@@ -77,10 +85,11 @@ function formatProfileContext(profile: UserProfile | null): string {
 }
 
 /**
- * Build full prompt (system + user) for the AI.
+ * Build full prompt (system + user). Applies row limit and soft character budget for serverless.
  */
 export function buildPrompt(ctx: PromptContext): { system: string; user: string } {
-  const companyBlocks = ctx.companyRows.map((row) => formatCompanyContext(row.data));
+  const rowsLimited = ctx.companyRows.slice(0, MAX_COMPANY_ROWS);
+  const companyBlocks = rowsLimited.map((row) => formatCompanyContext(row.data));
   const companySection =
     companyBlocks.length === 0
       ? 'No specific company selected.'
@@ -91,7 +100,7 @@ export function buildPrompt(ctx: PromptContext): { system: string; user: string 
   const profileSection = formatProfileContext(ctx.profile);
 
   const system = `${SYSTEM_PREFIX}\n\nUse the following context to personalize your response.`;
-  const user = [
+  let user = [
     '## Context',
     '### User profile & resume',
     profileSection,
@@ -100,6 +109,10 @@ export function buildPrompt(ctx: PromptContext): { system: string; user: string 
     '## User request',
     ctx.userPrompt,
   ].join('\n\n');
+
+  if (user.length > MAX_USER_MESSAGE_CHARS) {
+    user = user.slice(0, MAX_USER_MESSAGE_CHARS) + '\n\n[Context truncated for length.]';
+  }
 
   return { system, user };
 }

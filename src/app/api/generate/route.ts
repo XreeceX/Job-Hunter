@@ -9,6 +9,7 @@ import { prisma } from '@/lib/db';
 import { getOrCreateProfile } from '@/lib/services/user-profile.service';
 import { buildPromptWithIntent } from '@/lib/services/prompt-builder.service';
 import { generate } from '@/lib/services/ai-execution.service';
+import { isLLMConfigured } from '@/lib/services/ai';
 import { z } from 'zod';
 
 const bodySchema = z.object({
@@ -52,9 +53,12 @@ export async function POST(request: NextRequest) {
 
     const { system, user } = buildPromptWithIntent(ctx);
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!isLLMConfigured()) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY not configured' },
+        {
+          error:
+            'AI not configured. Set LLM_PROVIDER (groq|openai) and the corresponding API key (GROQ_API_KEY or OPENAI_API_KEY).',
+        },
         { status: 503 }
       );
     }

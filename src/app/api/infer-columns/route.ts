@@ -12,9 +12,7 @@ import {
   inferColumnsHeuristic,
   inferColumnsWithAI,
 } from '@/lib/services/column-inference.service';
-import OpenAI from 'openai';
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { runLLM, isLLMConfigured } from '@/lib/services/ai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,14 +35,14 @@ export async function POST(request: NextRequest) {
     const headers = upload.headerRow as string[];
     let inferences = inferColumnsHeuristic(headers);
 
-    if (useAi && process.env.OPENAI_API_KEY) {
+    if (useAi && isLLMConfigured()) {
       const completionFn = async (prompt: string) => {
-        const res = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.1,
+        const result = await runLLM({
+          system: 'You respond with JSON only, no other text.',
+          user: prompt,
+          maxTokens: 1024,
         });
-        return res.choices[0]?.message?.content?.trim() ?? '[]';
+        return result.text ?? '[]';
       };
       inferences = await inferColumnsWithAI(headers, completionFn);
     }
