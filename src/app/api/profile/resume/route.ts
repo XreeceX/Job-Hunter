@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveResume } from '@/lib/services/user-profile.service';
 
+export const dynamic = 'force-dynamic';
+
 const MAX_SIZE = 4 * 1024 * 1024; // 4MB
 
 export async function POST(request: NextRequest) {

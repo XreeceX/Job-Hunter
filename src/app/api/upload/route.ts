@@ -8,6 +8,8 @@ import { prisma } from '@/lib/db';
 import { parseExcelBuffer, mapRowsToSemantic } from '@/lib/services/excel-ingestion.service';
 import { inferColumnsHeuristic } from '@/lib/services/column-inference.service';
 
+export const dynamic = 'force-dynamic';
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export async function POST(request: NextRequest) {

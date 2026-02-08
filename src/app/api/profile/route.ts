@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getOrCreateProfile, updateProfile } from '@/lib/services/user-profile.service';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const updateSchema = z.object({
   name: z.string().nullable().optional(),
   targetRole: z.string().nullable().optional(),

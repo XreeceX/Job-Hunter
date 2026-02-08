@@ -12,6 +12,8 @@ import { generate } from '@/lib/services/ai-execution.service';
 import { isLLMConfigured } from '@/lib/services/ai';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const bodySchema = z.object({
   companyRowIds: z.array(z.string()).min(0),
   userPrompt: z.string().min(1),

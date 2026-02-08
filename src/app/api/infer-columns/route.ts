@@ -14,6 +14,8 @@ import {
 } from '@/lib/services/column-inference.service';
 import { runLLM, isLLMConfigured } from '@/lib/services/ai';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
