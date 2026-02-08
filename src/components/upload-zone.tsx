@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, CheckCircle } from 'lucide-react';
 
 interface UploadZoneProps {
   onDone: () => void;
@@ -11,10 +11,18 @@ interface UploadZoneProps {
 export function UploadZone({ onDone }: UploadZoneProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => setSuccess(null), 5000);
+    return () => clearTimeout(t);
+  }, [success]);
 
   const handleFile = async (file: File) => {
     setError(null);
+    setSuccess(null);
     setUploading(true);
     try {
       const form = new FormData();
@@ -26,6 +34,9 @@ export function UploadZone({ onDone }: UploadZoneProps) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       onDone();
+      setSuccess(
+        `${data.fileName ?? file.name} uploaded successfully — ${data.rowCount ?? 0} rows detected.`
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
@@ -87,6 +98,12 @@ export function UploadZone({ onDone }: UploadZoneProps) {
             Choose file
           </Button>
         </>
+      )}
+      {success && (
+        <p className="mt-3 flex items-center justify-center gap-2 text-sm text-[var(--accent)]" role="status">
+          <CheckCircle className="h-4 w-4 shrink-0" />
+          {success}
+        </p>
       )}
       {error && (
         <p className="mt-3 text-sm text-red-400" role="alert">
