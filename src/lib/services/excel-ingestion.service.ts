@@ -130,11 +130,11 @@ export function mapRowsToSemantic(
 ): Record<string, string | null>[] {
   return rows.map((row) => {
     const out: Record<string, string | null> = {};
-    for (const [header, semanticKey] of headerToSemantic) {
+    headerToSemantic.forEach((semanticKey, header) => {
       const val = row[header];
       out[semanticKey] =
         val === null || val === undefined ? null : String(val).trim() || null;
-    }
+    });
     return out;
   });
 }
