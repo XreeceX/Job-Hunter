@@ -24,7 +24,7 @@ export function CompanyTable({
   const keys = upload.columnMappings
     .map((m) => m.semanticKey)
     .filter((k) => k !== 'other');
-  const cols = [...new Set([...DISPLAY_KEYS.filter((k) => keys.includes(k)), ...keys])];
+  const cols = Array.from(new Set([...DISPLAY_KEYS.filter((k) => keys.includes(k)), ...keys]));
   const rows = upload.rows.slice(0, 50);
 
   return (
