@@ -74,7 +74,7 @@ All outputs use your profile and resume and the selected company row(s); no colu
 The app uses a **provider-agnostic** AI layer (`src/lib/services/ai/`). No OpenAI (or Groq) is imported outside that folder.
 
 - **Production default (Vercel):** **Groq**  
-  Set `LLM_PROVIDER=groq` and `GROQ_API_KEY`. Groq offers a free hosted tier, OpenAI-compatible chat API, and is serverless-friendly (no cold-start issues). Default model: `llama3-70b-8192`.
+  Set `LLM_PROVIDER=groq` and `GROQ_API_KEY`. Groq offers a free hosted tier, OpenAI-compatible chat API, and is serverless-friendly (no cold-start issues). Default model: `llama-3.3-70b-versatile`.
 
 - **Local / fallback:** **OpenAI**  
   Set `LLM_PROVIDER=openai` and `OPENAI_API_KEY` if you prefer GPT for generation or column inference.
