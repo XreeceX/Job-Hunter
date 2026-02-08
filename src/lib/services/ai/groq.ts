@@ -6,7 +6,7 @@
 import Groq from 'groq-sdk';
 import type { RunLLMOptions, RunLLMResult } from './types';
 
-const DEFAULT_GROQ_MODEL = 'llama3-70b-8192';
+const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 export async function runGroq(options: RunLLMOptions): Promise<RunLLMResult> {
   const apiKey = process.env.GROQ_API_KEY;
