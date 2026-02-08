@@ -25,13 +25,32 @@ export function UploadZone({ onDone }: UploadZoneProps) {
     setSuccess(null);
     setUploading(true);
     try {
+      const MAX_MB = 4;
+      if (file.size > MAX_MB * 1024 * 1024) {
+        setError(`File too large. Use a file under ${MAX_MB}MB.`);
+        setUploading(false);
+        return;
+      }
       const form = new FormData();
       form.append('file', file);
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: form,
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: { error?: string; fileName?: string; rowCount?: number };
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        setError(
+          res.status === 413
+            ? 'File too large. Try a file under 4MB.'
+            : 'Server returned an error. Try a smaller file or try again.'
+        );
+        setUploading(false);
+        if (inputRef.current) inputRef.current.value = '';
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       onDone();
       setSuccess(

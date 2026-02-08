@@ -10,7 +10,7 @@ import { inferColumnsHeuristic } from '@/lib/services/column-inference.service';
 
 export const dynamic = 'force-dynamic';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB (Vercel serverless body limit ~4.5MB)
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 });
+      return NextResponse.json({ error: 'File too large (max 4MB)' }, { status: 400 });
     }
 
     const name = file.name.toLowerCase();
