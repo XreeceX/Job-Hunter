@@ -34,6 +34,8 @@ AI-powered job hunting web app for a single user: upload spreadsheets, map colum
    npx prisma db push
    ```
 
+   **First time with Neon (or any new empty DB):** The tables (`User`, `Upload`, etc.) must exist. From your machine, run the above **once** with `DATABASE_URL` pointing at your Neon DB (copy from Vercel → Project → Settings → Environment Variables, or from Neon dashboard). After `prisma db push` succeeds, the app and Vercel will work.
+
 4. **Run**
 
    ```bash
