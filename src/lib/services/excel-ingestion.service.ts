@@ -45,7 +45,7 @@ export function parseExcelBuffer(buffer: Buffer): ParsedSheet {
     return { headers: [], rows: [], rowCount: 0 };
   }
 
-  const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, {
+  const data = XLSX.utils.sheet_to_json(firstSheet, {
     header: 1,
     defval: '',
     raw: false,
@@ -88,7 +88,7 @@ export function parseCsvString(csvText: string): ParsedSheet {
     return { headers: [], rows: [], rowCount: 0 };
   }
 
-  const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, {
+  const data = XLSX.utils.sheet_to_json(firstSheet, {
     header: 1,
     defval: '',
   }) as unknown[][];
