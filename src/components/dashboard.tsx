@@ -48,34 +48,46 @@ export function Dashboard() {
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
   const [profileOpen, setProfileOpen] = useState(false);
 
-  /** Warm serverless + DB with a light request so GET /api/uploads is more likely to succeed. */
-  const warmUp = useCallback(() => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
-    return fetch('/api/health', { signal: controller.signal })
-      .catch(() => {})
-      .finally(() => clearTimeout(timeout));
+  /** Fire a light request in the background to warm serverless; don't block uploads. */
+  const warmUpBackground = useCallback(() => {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 3000);
+    fetch('/api/health', { signal: c.signal }).catch(() => {}).finally(() => clearTimeout(t));
   }, []);
 
+  const retryDelays = [2000, 5000, 10000]; // ms: retry again after 2s, 5s, 10s
+
   const fetchUploads = useCallback(
-    async (isRetry?: boolean) => {
+    async (retryIndex?: number) => {
       setUploadsError(null);
       setUploadsLoading(true);
       try {
-        await warmUp();
+        warmUpBackground();
+        await new Promise((r) => setTimeout(r, 400));
         const res = await fetch('/api/uploads');
         const text = await res.text();
+
+        if (res.status === 401 || res.status === 403) {
+          setUploadsError(
+            'This deployment requires login (Vercel Deployment Protection). Turn it off: Vercel → Project → Settings → Deployment Protection → disable for Production, or use "Only Preview" so the live app loads data.'
+          );
+          setUploads([]);
+          setUploadsLoading(false);
+          return;
+        }
+
         let data: { error?: string; uploads?: UploadSummary[] };
         try {
           data = text ? JSON.parse(text) : {};
         } catch {
           setUploadsError(
-            "Couldn't load spreadsheets (server returned an error page). If you use the pooled DB URL, the first request can time out (cold start). Wait a few seconds and click Retry, or open /api/health to test the connection."
+            "Couldn't load spreadsheets (server returned an error page). Retrying automatically… If it still fails, wait ~15s and click Retry, or check Vercel plan (Hobby = 10s limit)."
           );
           setUploads([]);
           setUploadsLoading(false);
-          if (!isRetry) {
-            window.setTimeout(() => fetchUploads(true), 2000);
+          const next = retryIndex === undefined ? 0 : retryIndex + 1;
+          if (next < retryDelays.length) {
+            window.setTimeout(() => fetchUploads(next), retryDelays[next]);
           }
           return;
         }
@@ -94,7 +106,7 @@ export function Dashboard() {
         setUploadsLoading(false);
       }
     },
-    [selectedUploadId, warmUp]
+    [selectedUploadId, warmUpBackground]
   );
 
   const fetchUploadDetail = useCallback(async (id: string) => {

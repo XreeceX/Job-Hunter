@@ -133,8 +133,13 @@ After the list loads, you’ll see “Recent uploads” and the company table; s
 - **Test the DB:** Open **`https://your-app.vercel.app/api/health`** in a new tab. If you see `{"ok":true}`, the database connection works and the problem is likely the uploads request timing out. If you see an error page there too, the function is timing out or failing before it can run.
 - **What to do:** Wait 10–15 seconds and click **Retry** (or refresh the page) so the next request may hit a warm function. If it keeps failing on Hobby, consider **Vercel Pro** for longer timeouts, or visit `/api/health` first to warm up, then open the dashboard.
 
+**"Login required" / spreadsheets never load**
+
+- If your Vercel project has **Deployment Protection** (e.g. "Vercel Authentication" or "Password"), the browser's request to `/api/uploads` gets a **401/403** and an HTML login page instead of JSON, so the app shows "Couldn't load spreadsheets."
+- **Fix:** In **Vercel** → your project → **Settings** → **Deployment Protection**, either **disable protection for Production** (so the live app is public) or set it to **"Only Preview"** so Production deployments are public and the app can load data. Then redeploy or refresh the app.
+
 **"Server returned an unexpected response" (same cause)**  
-- The app’s **GET /api/uploads** is receiving an HTML error page instead of JSON. Follow the “Fix: Company list not loading” steps above (pooled Neon URL + redeploy). If you already use the pooled URL, see "Already using the pooled URL but still getting an error page?" above.
+- The app’s **GET /api/uploads** is receiving an HTML error page instead of JSON. Follow the “Fix: Company list not loading” steps above (pooled Neon URL + redeploy). If you already use the pooled URL, see "Already using the pooled URL but still getting an error page?" above. If you see a login screen when opening the app, see "Login required" above.
 
 **DeprecationWarning: `url.parse()` in logs (Error count)**  
 - The `(node:10) [DEP0169] DeprecationWarning: url.parse()...` comes from a dependency (e.g. OpenAI or Groq SDK), not your code. It does not break upload or generate (both can still return 200). To hide it in Vercel logs, add an environment variable in Vercel → Project → Settings → Environment Variables: **`NODE_OPTIONS`** = **`--no-deprecation`**. Redeploy so it takes effect.
