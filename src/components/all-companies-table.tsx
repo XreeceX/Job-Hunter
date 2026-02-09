@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 
 export interface CompanyRowWithUpload {
   id: string;
@@ -32,6 +34,7 @@ interface AllCompaniesTableProps {
   onToggleRow: (id: string) => void;
   onSelectAll: () => void;
   onClearSelection: () => void;
+  onDeleteRows: (ids: string[]) => Promise<void>;
   totalRows: number;
   totalUploads: number;
   uploadMappings?: UploadMapping[];
@@ -44,10 +47,48 @@ export function AllCompaniesTable({
   onToggleRow,
   onSelectAll,
   onClearSelection,
+  onDeleteRows,
   totalRows,
   totalUploads,
   uploadMappings = [],
 }: AllCompaniesTableProps) {
+  const [deleting, setDeleting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteSelected = async () => {
+    if (selectedRowIds.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedRowIds.size} ${selectedRowIds.size === 1 ? 'row' : 'rows'}?`)) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await onDeleteRows(Array.from(selectedRowIds));
+      onClearSelection();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete rows. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteRow = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this row?')) {
+      return;
+    }
+    setDeletingId(id);
+    try {
+      await onDeleteRows([id]);
+      if (selectedRowIds.has(id)) {
+        onToggleRow(id);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete row. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
   // Create a map from uploadId to header->semantic key mapping
   const uploadMappingMap = new Map<string, Map<string, string>>();
   uploadMappings.forEach((um) => {
@@ -105,6 +146,18 @@ export function AllCompaniesTable({
           <Button variant="ghost" size="sm" onClick={onClearSelection}>
             Clear
           </Button>
+          {selectedRowIds.size > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDeleteSelected}
+              disabled={deleting}
+              className="text-red-400 hover:text-red-300"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete ({selectedRowIds.size})
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -131,6 +184,7 @@ export function AllCompaniesTable({
                         {col === 'upload_file' ? 'Source File' : col.replace(/_/g, ' ')}
                       </th>
                     ))}
+                    <th className="w-12 p-2"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -164,6 +218,18 @@ export function AllCompaniesTable({
                             </td>
                           );
                         })}
+                        <td className="p-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteRow(row.id)}
+                            disabled={deletingId === row.id || deleting}
+                            className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                            title="Delete row"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
                       </tr>
                     );
                   })}

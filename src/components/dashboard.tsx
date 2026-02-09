@@ -201,6 +201,29 @@ export function Dashboard() {
 
   const clearSelection = () => setSelectedRowIds(new Set());
 
+  const handleDeleteRows = useCallback(async (companyRowIds: string[]) => {
+    try {
+      const res = await fetch('/api/companies', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyRowIds }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete rows');
+      }
+
+      // Refresh the companies list after deletion
+      await fetchAllCompanies();
+      // Also refresh uploads to update row counts
+      await fetchUploads();
+    } catch (error) {
+      console.error('Delete error:', error);
+      throw error;
+    }
+  }, [fetchAllCompanies, fetchUploads]);
+
   return (
     <div className="mx-auto max-w-7xl p-4 md:p-6">
       <header className="mb-8 flex items-center justify-between border-b border-[var(--border)] pb-4">
@@ -216,8 +239,10 @@ export function Dashboard() {
         </Button>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-8 space-y-4">
+      <div className="space-y-6">
+        {/* Top row: Spreadsheet (1/4) + AI Assistant (3/4) */}
+        <div className="grid gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-3">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -258,7 +283,18 @@ export function Dashboard() {
               )}
             </CardContent>
           </Card>
+          </div>
 
+          <div className="lg:col-span-9">
+            <PromptPanel
+              selectedCompanyIds={Array.from(selectedRowIds)}
+              selectedUploadId={uploads.length > 0 ? uploads[0].id : null}
+            />
+          </div>
+        </div>
+
+        {/* Bottom row: Companies table (full width) */}
+        <div>
           {companiesLoading && (
             <Card>
               <CardContent className="py-4">
@@ -284,18 +320,12 @@ export function Dashboard() {
               onToggleRow={toggleRow}
               onSelectAll={selectAllRows}
               onClearSelection={clearSelection}
+              onDeleteRows={handleDeleteRows}
               totalRows={totalRows}
               totalUploads={totalUploads}
               uploadMappings={uploadMappings}
             />
           )}
-        </div>
-
-        <div className="lg:col-span-4">
-          <PromptPanel
-            selectedCompanyIds={Array.from(selectedRowIds)}
-            selectedUploadId={uploads.length > 0 ? uploads[0].id : null}
-          />
         </div>
       </div>
 

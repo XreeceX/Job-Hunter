@@ -8,6 +8,72 @@ import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * DELETE /api/companies
+ * Deletes one or more company rows by their IDs
+ * Body: { companyRowIds: string[] }
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { companyRowIds } = body;
+
+    if (!Array.isArray(companyRowIds) || companyRowIds.length === 0) {
+      return NextResponse.json(
+        { error: 'companyRowIds must be a non-empty array' },
+        { status: 400 }
+      );
+    }
+
+    // First, get the upload IDs before deleting
+    const rowsToDelete = await prisma.companyRow.findMany({
+      where: {
+        id: {
+          in: companyRowIds,
+        },
+      },
+      select: {
+        uploadId: true,
+      },
+    });
+
+    // Get unique upload IDs that will be affected
+    const affectedUploadIds = [...new Set(rowsToDelete.map((r) => r.uploadId))];
+
+    // Delete the company rows
+    const result = await prisma.companyRow.deleteMany({
+      where: {
+        id: {
+          in: companyRowIds,
+        },
+      },
+    });
+
+    // Update rowCount for each affected upload
+    for (const uploadId of affectedUploadIds) {
+      const remainingCount = await prisma.companyRow.count({
+        where: { uploadId },
+      });
+      await prisma.upload.update({
+        where: { id: uploadId },
+        data: { rowCount: remainingCount },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      deletedCount: result.count,
+      message: `Successfully deleted ${result.count} ${result.count === 1 ? 'row' : 'rows'}`,
+    });
+  } catch (e) {
+    console.error('Companies delete error:', e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : 'Failed to delete companies' },
+      { status: 500 }
+    );
+  }
+}
+
 export interface CompanyRowWithUpload {
   id: string;
   rowIndex: number;
