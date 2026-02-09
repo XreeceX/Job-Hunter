@@ -70,58 +70,54 @@ export function Dashboard() {
     fetch('/api/health', { signal: c.signal }).catch(() => {}).finally(() => clearTimeout(t));
   }, []);
 
-  const retryDelays = [2000, 5000, 10000]; // ms: retry again after 2s, 5s, 10s
+  const fetchUploads = useCallback(async () => {
+    setUploadsError(null);
+    setUploadsLoading(true);
+    try {
+      warmUpBackground();
+      await new Promise((r) => setTimeout(r, 400));
+      const res = await fetch('/api/uploads');
+      const text = await res.text();
 
-  const fetchUploads = useCallback(
-    async (retryIndex?: number) => {
-      setUploadsError(null);
-      setUploadsLoading(true);
-      try {
-        warmUpBackground();
-        await new Promise((r) => setTimeout(r, 400));
-        const res = await fetch('/api/uploads');
-        const text = await res.text();
-
-        if (res.status === 401 || res.status === 403) {
-          setUploadsError(
-            'This deployment requires login (Vercel Deployment Protection). Turn it off: Vercel → Project → Settings → Deployment Protection → disable for Production, or use "Only Preview" so the live app loads data.'
-          );
-          setUploads([]);
-          setUploadsLoading(false);
-          return;
-        }
-
-        let data: { error?: string; uploads?: UploadSummary[] };
-        try {
-          data = text ? JSON.parse(text) : {};
-        } catch {
-          setUploadsError(
-            "Couldn't load spreadsheets (server returned an error page). Retrying automatically… If it still fails, wait ~15s and click Retry, or check Vercel plan (Hobby = 10s limit)."
-          );
-          setUploads([]);
-          setUploadsLoading(false);
-          const next = retryIndex === undefined ? 0 : retryIndex + 1;
-          if (next < retryDelays.length) {
-            window.setTimeout(() => fetchUploads(next), retryDelays[next]);
-          }
-          return;
-        }
-        if (!res.ok) {
-          setUploadsError(data?.error ?? 'Failed to load uploads');
-          setUploads([]);
-          return;
-        }
-        const list = data.uploads ?? [];
-        setUploads(list);
-      } catch (e) {
-        setUploadsError(e instanceof Error ? e.message : 'Failed to load uploads');
+      if (res.status === 401 || res.status === 403) {
+        setUploadsError(
+          'This deployment requires login (Vercel Deployment Protection). Turn it off: Vercel → Project → Settings → Deployment Protection → disable for Production, or use "Only Preview" so the live app loads data.'
+        );
         setUploads([]);
-      } finally {
         setUploadsLoading(false);
+        return;
       }
-    },
-    [warmUpBackground]
-  );
+
+      let data: { error?: string; uploads?: UploadSummary[] };
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        // If parsing fails but response is OK, try to continue silently
+        if (res.ok) {
+          setUploads([]);
+          setUploadsLoading(false);
+          return;
+        }
+        // Only show error if response is not OK
+        setUploadsError('Failed to load uploads');
+        setUploads([]);
+        setUploadsLoading(false);
+        return;
+      }
+      if (!res.ok) {
+        setUploadsError(data?.error ?? 'Failed to load uploads');
+        setUploads([]);
+        return;
+      }
+      const list = data.uploads ?? [];
+      setUploads(list);
+    } catch (e) {
+      setUploadsError(e instanceof Error ? e.message : 'Failed to load uploads');
+      setUploads([]);
+    } finally {
+      setUploadsLoading(false);
+    }
+  }, [warmUpBackground]);
 
   const fetchAllCompanies = useCallback(async () => {
     setCompaniesError(null);
