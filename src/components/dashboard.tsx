@@ -48,11 +48,21 @@ export function Dashboard() {
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
   const [profileOpen, setProfileOpen] = useState(false);
 
+  /** Warm serverless + DB with a light request so GET /api/uploads is more likely to succeed. */
+  const warmUp = useCallback(() => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    return fetch('/api/health', { signal: controller.signal })
+      .catch(() => {})
+      .finally(() => clearTimeout(timeout));
+  }, []);
+
   const fetchUploads = useCallback(
     async (isRetry?: boolean) => {
       setUploadsError(null);
       setUploadsLoading(true);
       try {
+        await warmUp();
         const res = await fetch('/api/uploads');
         const text = await res.text();
         let data: { error?: string; uploads?: UploadSummary[] };
@@ -84,7 +94,7 @@ export function Dashboard() {
         setUploadsLoading(false);
       }
     },
-    [selectedUploadId]
+    [selectedUploadId, warmUp]
   );
 
   const fetchUploadDetail = useCallback(async (id: string) => {

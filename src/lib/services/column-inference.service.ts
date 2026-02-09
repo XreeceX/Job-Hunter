@@ -17,10 +17,10 @@ export interface ColumnInferenceResult {
 // Heuristic rules: normalized header substrings -> semantic key
 const HEURISTIC_RULES: { pattern: RegExp | string; key: SemanticKey }[] = [
   { pattern: /company|organisation|organization|firma|empresa/i, key: 'company_name' },
-  { pattern: /website|url|web|site/i, key: 'website' },
+  { pattern: /website|url|web|site|careers|hiring.*link|link.*(career|hiring)/i, key: 'website' },
   { pattern: /email|e-mail|mail|contact email/i, key: 'email' },
   { pattern: /phone|tel|mobile|cell|number/i, key: 'phone' },
-  { pattern: /role|title|position|job|vacancy|opening/i, key: 'role' },
+  { pattern: /role|title|position|job|vacancy|opening|typical.*(ai|ml|role)/i, key: 'role' },
   { pattern: /contact|name|recruiter|hr/i, key: 'contact_name' },
   { pattern: /note|comment|remarks|extra|other/i, key: 'notes' },
 ];
