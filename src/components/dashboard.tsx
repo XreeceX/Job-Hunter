@@ -48,36 +48,42 @@ export function Dashboard() {
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const fetchUploads = useCallback(async () => {
-    setUploadsError(null);
-    setUploadsLoading(true);
-    try {
-      const res = await fetch('/api/uploads');
-      const text = await res.text();
-      let data: { error?: string; uploads?: UploadSummary[] };
+  const fetchUploads = useCallback(
+    async (isRetry?: boolean) => {
+      setUploadsError(null);
+      setUploadsLoading(true);
       try {
-        data = text ? JSON.parse(text) : {};
-      } catch {
-        setUploadsError('Server returned an unexpected response. Try again.');
+        const res = await fetch('/api/uploads');
+        const text = await res.text();
+        let data: { error?: string; uploads?: UploadSummary[] };
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          setUploadsError('Server returned an unexpected response. Try again.');
+          setUploads([]);
+          setUploadsLoading(false);
+          if (!isRetry) {
+            window.setTimeout(() => fetchUploads(true), 2000);
+          }
+          return;
+        }
+        if (!res.ok) {
+          setUploadsError(data?.error ?? 'Failed to load uploads');
+          setUploads([]);
+          return;
+        }
+        const list = data.uploads ?? [];
+        setUploads(list);
+        if (list.length > 0 && !selectedUploadId) setSelectedUploadId(list[0].id);
+      } catch (e) {
+        setUploadsError(e instanceof Error ? e.message : 'Failed to load uploads');
         setUploads([]);
+      } finally {
         setUploadsLoading(false);
-        return;
       }
-      if (!res.ok) {
-        setUploadsError(data?.error ?? 'Failed to load uploads');
-        setUploads([]);
-        return;
-      }
-      const list = data.uploads ?? [];
-      setUploads(list);
-      if (list.length > 0 && !selectedUploadId) setSelectedUploadId(list[0].id);
-    } catch (e) {
-      setUploadsError(e instanceof Error ? e.message : 'Failed to load uploads');
-      setUploads([]);
-    } finally {
-      setUploadsLoading(false);
-    }
-  }, [selectedUploadId]);
+    },
+    [selectedUploadId]
+  );
 
   const fetchUploadDetail = useCallback(async (id: string) => {
     const res = await fetch(`/api/uploads?uploadId=${id}`);
