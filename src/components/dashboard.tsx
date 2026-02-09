@@ -53,7 +53,16 @@ export function Dashboard() {
     setUploadsLoading(true);
     try {
       const res = await fetch('/api/uploads');
-      const data = await res.json();
+      const text = await res.text();
+      let data: { error?: string; uploads?: UploadSummary[] };
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        setUploadsError('Server returned an unexpected response. Try again.');
+        setUploads([]);
+        setUploadsLoading(false);
+        return;
+      }
       if (!res.ok) {
         setUploadsError(data?.error ?? 'Failed to load uploads');
         setUploads([]);
@@ -72,10 +81,19 @@ export function Dashboard() {
 
   const fetchUploadDetail = useCallback(async (id: string) => {
     const res = await fetch(`/api/uploads?uploadId=${id}`);
-    if (res.ok) {
-      const { upload } = await res.json();
-      setUploadDetail(upload);
+    const text = await res.text();
+    let data: { upload?: UploadDetail };
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      setUploadDetail(null);
+      return;
+    }
+    if (res.ok && data.upload) {
+      setUploadDetail(data.upload);
       setSelectedRowIds(new Set());
+    } else {
+      setUploadDetail(null);
     }
   }, []);
 
