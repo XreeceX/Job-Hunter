@@ -59,7 +59,9 @@ export function Dashboard() {
         try {
           data = text ? JSON.parse(text) : {};
         } catch {
-          setUploadsError('Server returned an unexpected response. Try again.');
+          setUploadsError(
+            "Couldn't load spreadsheets (server returned an error page). If you use the pooled DB URL, the first request can time out (cold start). Wait a few seconds and click Retry, or open /api/health to test the connection."
+          );
           setUploads([]);
           setUploadsLoading(false);
           if (!isRetry) {
