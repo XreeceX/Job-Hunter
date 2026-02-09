@@ -22,6 +22,9 @@ const bodySchema = z.object({
     .optional(),
 });
 
+const NO_COMPANIES_MESSAGE =
+  'Select at least one company from the table above so the AI can personalize the output. If you don’t see any uploads or companies, refresh the page or click Retry in the Spreadsheet section—your data is saved.';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -31,6 +34,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { companyRowIds, userPrompt, intentHint } = parsed.data;
+
+    if (companyRowIds.length === 0) {
+      return NextResponse.json(
+        { error: NO_COMPANIES_MESSAGE },
+        { status: 400 }
+      );
+    }
 
     const [profile, companyRows] = await Promise.all([
       getOrCreateProfile(),

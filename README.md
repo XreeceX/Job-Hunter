@@ -101,8 +101,34 @@ To run the app 24/7 without keeping Postgres (or your laptop) on:
 
 ## Troubleshooting
 
-**"Server returned an unexpected response" when loading spreadsheets (list is empty)**  
-- Your data is in Neon (you can confirm in Neon dashboard or Prisma Studio), but the app’s **GET /api/uploads** is receiving an HTML error page instead of JSON.
-- **Fix 1 – Use Neon’s pooled connection string:** In Neon, use the **pooled** connection string (host usually contains `-pooler`, e.g. `ep-xxx-pooler.region.aws.neon.tech`) and set that as `DATABASE_URL` in Vercel. Pooled connections work better with serverless and avoid connection limits.
-- **Fix 2 – Check Vercel logs:** In Vercel → your project → Logs (or Functions), find the request to **GET /api/uploads**. Check the response status and any error message (e.g. timeout, DB connection failed). That will show why the platform might be returning HTML.
-- **Fix 3 – Redeploy:** Ensure the latest code (with `maxDuration` and safe JSON handling) is deployed, then try again or click Retry in the app.
+**Fix: Company list not loading (“No company list provided” / “Server returned an unexpected response”)**
+
+Your uploads are saved in Neon, but the app can’t load the list. Do these in order:
+
+1. **Use Neon’s pooled connection string on Vercel**
+   - Open [Neon Console](https://console.neon.tech) → your **Job_hunter** project.
+   - Go to **Connection details** (or Dashboard).
+   - Copy the **“Pooled”** connection string (host must contain **`-pooler`**, e.g. `ep-xxx-pooler.eu-west-2.aws.neon.tech`). Do **not** use the direct (non-pooled) one for Vercel.
+   - In **Vercel** → your project → **Settings** → **Environment Variables**:
+     - Set **`DATABASE_URL`** to that pooled string (for **Production**, and **Preview** if you use it).
+     - If `DATABASE_URL` already exists, edit it and replace with the pooled URL.
+   - **Redeploy**: Deployments → … on latest → **Redeploy** (or push a commit). Env changes apply only after a new deployment.
+
+2. **Confirm the list request in Vercel**
+   - Open the deployed app and refresh (or click Retry in the Spreadsheet section).
+   - In **Vercel** → **Logs**, filter or search for **`/api/uploads`**.
+   - You should see **GET /api/uploads** with status **200**. If you see **500**, **502**, **---**, or no entry, the function is failing or timing out; the pooled URL from step 1 usually fixes that.
+
+3. **If it still fails**
+   - In Logs, open the **GET /api/uploads** entry and check the error message (e.g. connection refused, timeout).
+   - Ensure **DATABASE_URL** in Vercel has no extra spaces and includes `?sslmode=require` at the end of the URL.
+
+After the list loads, you’ll see “Recent uploads” and the company table; select an upload and one or more companies, then **Generate** will include the company list and the AI will use it.
+
+---
+
+**"Server returned an unexpected response" (same cause)**  
+- The app’s **GET /api/uploads** is receiving an HTML error page instead of JSON. Follow the “Fix: Company list not loading” steps above (pooled Neon URL + redeploy).
+
+**DeprecationWarning: `url.parse()` in logs (Error count)**  
+- The `(node:10) [DEP0169] DeprecationWarning: url.parse()...` comes from a dependency (e.g. OpenAI or Groq SDK), not your code. It does not break upload or generate (both can still return 200). To hide it in Vercel logs, add an environment variable in Vercel → Project → Settings → Environment Variables: **`NODE_OPTIONS`** = **`--no-deprecation`**. Redeploy so it takes effect.

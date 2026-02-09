@@ -122,6 +122,11 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
             Upload a spreadsheet and select companies for personalized output.
           </p>
         )}
+        {selectedUploadId && selectedCompanyIds.length === 0 && (
+          <p className="text-xs text-amber-500/90">
+            Select one or more companies in the table above, then Generate.
+          </p>
+        )}
         {error && (
           <p className="text-sm text-red-400" role="alert">
             {error}
