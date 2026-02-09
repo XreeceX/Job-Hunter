@@ -77,42 +77,51 @@ export function Dashboard() {
       warmUpBackground();
       await new Promise((r) => setTimeout(r, 400));
       const res = await fetch('/api/uploads');
-      const text = await res.text();
-
-      if (res.status === 401 || res.status === 403) {
-        setUploadsError(
-          'This deployment requires login (Vercel Deployment Protection). Turn it off: Vercel → Project → Settings → Deployment Protection → disable for Production, or use "Only Preview" so the live app loads data.'
-        );
+      
+      if (!res.ok) {
+        // Only show error for actual HTTP errors (4xx, 5xx)
+        if (res.status === 401 || res.status === 403) {
+          setUploadsError(
+            'This deployment requires login (Vercel Deployment Protection). Turn it off: Vercel → Project → Settings → Deployment Protection → disable for Production, or use "Only Preview" so the live app loads data.'
+          );
+        } else {
+          const text = await res.text();
+          let errorMessage = 'Failed to load uploads';
+          try {
+            const errorData = text ? JSON.parse(text) : {};
+            if (errorData && typeof errorData === 'object' && 'error' in errorData) {
+              errorMessage = errorData.error || errorMessage;
+            }
+          } catch {
+            // If we can't parse error, just use generic message
+          }
+          setUploadsError(errorMessage);
+        }
         setUploads([]);
         setUploadsLoading(false);
         return;
       }
 
+      const text = await res.text();
       let data: { error?: string; uploads?: UploadSummary[] };
       try {
         data = text ? JSON.parse(text) : {};
-      } catch {
-        // If parsing fails but response is OK, try to continue silently
-        if (res.ok) {
-          setUploads([]);
-          setUploadsLoading(false);
-          return;
-        }
-        // Only show error if response is not OK
-        setUploadsError('Failed to load uploads');
+      } catch (e) {
+        // If parsing fails but response is OK, assume empty list
+        console.warn('Failed to parse uploads response, assuming empty:', e);
         setUploads([]);
         setUploadsLoading(false);
         return;
       }
-      if (!res.ok) {
-        setUploadsError(data?.error ?? 'Failed to load uploads');
-        setUploads([]);
-        return;
-      }
+
+      // Success - clear any previous errors and set uploads
+      setUploadsError(null);
       const list = data.uploads ?? [];
       setUploads(list);
     } catch (e) {
-      setUploadsError(e instanceof Error ? e.message : 'Failed to load uploads');
+      // Only show error for network errors or other exceptions
+      console.error('Error fetching uploads:', e);
+      // Don't set error for transient issues - just log it
       setUploads([]);
     } finally {
       setUploadsLoading(false);
@@ -251,7 +260,7 @@ export function Dashboard() {
               {uploadsLoading && (
                 <p className="text-sm text-[var(--muted)]">Loading spreadsheets…</p>
               )}
-              {uploadsError && (
+              {uploadsError && uploads.length === 0 && (
                 <div className="space-y-2">
                   <p className="text-sm text-red-400" role="alert">{uploadsError}</p>
                   <Button variant="secondary" size="sm" onClick={() => fetchUploads()}>
