@@ -9,6 +9,7 @@ import { parseExcelBuffer, mapRowsToSemantic } from '@/lib/services/excel-ingest
 import { inferColumnsHeuristic } from '@/lib/services/column-inference.service';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30; // Allow time to parse Excel + write to Neon (avoids --- status / timeout)
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB (Vercel serverless body limit ~4.5MB)
 

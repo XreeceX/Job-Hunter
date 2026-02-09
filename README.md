@@ -98,3 +98,11 @@ To run the app 24/7 without keeping Postgres (or your laptop) on:
 
 4. **Env summary for 24/7**  
    In Vercel: `DATABASE_URL` (hosted Postgres), `LLM_PROVIDER` + `GROQ_API_KEY` (or OpenAI), and Blob token if you use a Blob store. No need to run Postgres (or the app) on your laptop.
+
+## Troubleshooting
+
+**"Server returned an unexpected response" when loading spreadsheets (list is empty)**  
+- Your data is in Neon (you can confirm in Neon dashboard or Prisma Studio), but the app’s **GET /api/uploads** is receiving an HTML error page instead of JSON.
+- **Fix 1 – Use Neon’s pooled connection string:** In Neon, use the **pooled** connection string (host usually contains `-pooler`, e.g. `ep-xxx-pooler.region.aws.neon.tech`) and set that as `DATABASE_URL` in Vercel. Pooled connections work better with serverless and avoid connection limits.
+- **Fix 2 – Check Vercel logs:** In Vercel → your project → Logs (or Functions), find the request to **GET /api/uploads**. Check the response status and any error message (e.g. timeout, DB connection failed). That will show why the platform might be returning HTML.
+- **Fix 3 – Redeploy:** Ensure the latest code (with `maxDuration` and safe JSON handling) is deployed, then try again or click Retry in the app.
