@@ -217,7 +217,7 @@ export function Dashboard() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-4 space-y-4">
+        <div className="lg:col-span-8 space-y-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -291,7 +291,7 @@ export function Dashboard() {
           )}
         </div>
 
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-4">
           <PromptPanel
             selectedCompanyIds={Array.from(selectedRowIds)}
             selectedUploadId={uploads.length > 0 ? uploads[0].id : null}
