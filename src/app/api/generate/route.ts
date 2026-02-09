@@ -52,9 +52,29 @@ export async function POST(request: NextRequest) {
         : Promise.resolve([]),
     ]);
 
+    if (companyRows.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            'No companies found with the provided IDs. Please refresh the page and select companies again.',
+        },
+        { status: 404 }
+      );
+    }
+
     const orderedRows = companyRowIds
       .map((id) => companyRows.find((r) => r.id === id))
       .filter(Boolean) as { id: string; data: Record<string, unknown> }[];
+
+    if (orderedRows.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Could not match company IDs. Please refresh the page and select companies again.',
+        },
+        { status: 400 }
+      );
+    }
 
     const ctx = {
       profile,
