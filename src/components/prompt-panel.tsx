@@ -26,10 +26,46 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
+  const [followUpAnswer, setFollowUpAnswer] = useState('');
 
   const generate = async () => {
     if (!prompt.trim()) {
       setError('Enter a request.');
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    setOutput('');
+    setFollowUpQuestion(null);
+    setFollowUpAnswer('');
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyRowIds: selectedCompanyIds,
+          userPrompt: prompt.trim(),
+          intentHint: intentHint || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Generation failed');
+      if (data.needsUserInput && data.question) {
+        setFollowUpQuestion(data.question);
+        return;
+      }
+      setOutput(data.text ?? '');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Generation failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitFollowUpAnswer = async () => {
+    if (!followUpQuestion || !followUpAnswer.trim()) {
+      setError('Please answer the follow-up question.');
       return;
     }
     setError(null);
@@ -43,11 +79,14 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
           companyRowIds: selectedCompanyIds,
           userPrompt: prompt.trim(),
           intentHint: intentHint || undefined,
+          followUpAnswers: [{ question: followUpQuestion, answer: followUpAnswer.trim() }],
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       setOutput(data.text ?? '');
+      setFollowUpQuestion(null);
+      setFollowUpAnswer('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed');
     } finally {
@@ -131,6 +170,26 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
           <p className="text-sm text-red-400" role="alert">
             {error}
           </p>
+        )}
+        {followUpQuestion && (
+          <div className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+            <Label>AI needs one more detail</Label>
+            <p className="text-sm text-[var(--muted)]">{followUpQuestion}</p>
+            <textarea
+              className="min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              placeholder="Your answer (this will be saved for future applications)"
+              value={followUpAnswer}
+              onChange={(e) => setFollowUpAnswer(e.target.value)}
+              disabled={loading}
+            />
+            <Button
+              onClick={submitFollowUpAnswer}
+              disabled={loading || !followUpAnswer.trim()}
+              className="w-full"
+            >
+              {loading ? 'Submitting…' : 'Submit answer and continue'}
+            </Button>
+          </div>
         )}
         {output && (
           <div className="space-y-2">
