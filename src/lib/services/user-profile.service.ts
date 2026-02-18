@@ -8,6 +8,11 @@ import type { UserProfileInput } from '@/lib/types';
 import fs from 'fs/promises';
 import path from 'path';
 
+export interface QaItem {
+  question: string;
+  answer: string;
+}
+
 /** Ensure single user exists; return user id */
 async function ensureUser(): Promise<string> {
   let user = await prisma.user.findFirst();
@@ -44,6 +49,45 @@ export async function updateProfile(input: UserProfileInput) {
       resumeText: input.resumeText ?? profile.resumeText,
       customQa: (input.customQa ?? profile.customQa) as object | undefined,
       preferences: input.preferences ?? profile.preferences,
+    },
+  });
+}
+
+function normalizeQuestion(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Save user-provided Q&A answers to memory (customQa).
+ * Existing questions are updated by normalized text match.
+ */
+export async function upsertProfileQaItems(items: QaItem[]) {
+  if (!items.length) return getOrCreateProfile();
+
+  const profile = await getOrCreateProfile();
+  const existing = (profile.customQa as QaItem[] | null) ?? [];
+  const map = new Map<string, QaItem>();
+
+  for (const entry of existing) {
+    if (!entry?.question || !entry?.answer) continue;
+    map.set(normalizeQuestion(entry.question), {
+      question: entry.question.trim(),
+      answer: entry.answer.trim(),
+    });
+  }
+
+  for (const entry of items) {
+    if (!entry?.question || !entry?.answer) continue;
+    const question = entry.question.trim();
+    const answer = entry.answer.trim();
+    if (!question || !answer) continue;
+    map.set(normalizeQuestion(question), { question, answer });
+  }
+
+  return prisma.userProfile.update({
+    where: { id: profile.id },
+    data: {
+      customQa: Array.from(map.values()) as object,
     },
   });
 }

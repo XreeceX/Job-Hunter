@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getOrCreateProfile } from '@/lib/services/user-profile.service';
+import { getOrCreateProfile, upsertProfileQaItems } from '@/lib/services/user-profile.service';
 import { buildPromptWithIntent } from '@/lib/services/prompt-builder.service';
 import { generate } from '@/lib/services/ai-execution.service';
 import { isLLMConfigured } from '@/lib/services/ai';
@@ -20,10 +20,63 @@ const bodySchema = z.object({
   intentHint: z
     .enum(['cold_email', 'cover_letter', 'research', 'interview_qa', 'custom'])
     .optional(),
+  followUpAnswers: z
+    .array(
+      z.object({
+        question: z.string().min(1),
+        answer: z.string().min(1),
+      })
+    )
+    .optional(),
 });
 
 const NO_COMPANIES_MESSAGE =
   'Select at least one company from the table above so the AI can personalize the output. If you don’t see any uploads or companies, refresh the page or click Retry in the Spreadsheet section—your data is saved.';
+
+interface MissingInfoResult {
+  needsUserInput: boolean;
+  question?: string;
+}
+
+function parseMissingInfoResponse(text: string): MissingInfoResult {
+  if (!text.trim()) return { needsUserInput: false };
+  const cleaned = text
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim();
+  try {
+    const parsed = JSON.parse(cleaned) as { needsUserInput?: boolean; question?: string };
+    if (!parsed.needsUserInput) return { needsUserInput: false };
+    const question = (parsed.question ?? '').trim();
+    if (!question) return { needsUserInput: false };
+    return { needsUserInput: true, question };
+  } catch {
+    return { needsUserInput: false };
+  }
+}
+
+async function detectMissingApplicationInfo(system: string, user: string): Promise<MissingInfoResult> {
+  const detectorSystem =
+    'You detect if user input is missing for job/internship application form answers. Return strict JSON only.';
+  const detectorUser = [
+    'Task:',
+    '- Decide whether the user is asking to fill/curate answers for a job or internship application form.',
+    '- If not, return {"needsUserInput": false}.',
+    '- If yes, and required info is missing from provided context, return {"needsUserInput": true, "question": "..."}',
+    '- Ask only ONE most important missing question.',
+    '- If context already has enough information, return {"needsUserInput": false}.',
+    '',
+    'Context passed to generator:',
+    `SYSTEM:\n${system}`,
+    `USER:\n${user}`,
+  ].join('\n');
+  const result = await generate({
+    system: detectorSystem,
+    user: detectorUser,
+    maxTokens: 220,
+  });
+  return parseMissingInfoResponse(result.text);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +86,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { companyRowIds, userPrompt, intentHint } = parsed.data;
+    const { companyRowIds, userPrompt, intentHint, followUpAnswers = [] } = parsed.data;
 
     if (companyRowIds.length === 0) {
       return NextResponse.json(
@@ -42,7 +95,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [profile, companyRows] = await Promise.all([
+    const [initialProfile, companyRows] = await Promise.all([
       getOrCreateProfile(),
       companyRowIds.length > 0
         ? prisma.companyRow.findMany({
@@ -51,6 +104,10 @@ export async function POST(request: NextRequest) {
           })
         : Promise.resolve([]),
     ]);
+
+    if (followUpAnswers.length > 0) {
+      await upsertProfileQaItems(followUpAnswers);
+    }
 
     if (companyRows.length === 0) {
       return NextResponse.json(
@@ -76,14 +133,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const profile = followUpAnswers.length > 0 ? await getOrCreateProfile() : initialProfile;
+
     const ctx = {
       profile,
       companyRows: orderedRows,
       userPrompt,
       intentHint,
     };
-
-    const { system, user } = buildPromptWithIntent(ctx);
 
     if (!isLLMConfigured()) {
       return NextResponse.json(
@@ -93,6 +150,18 @@ export async function POST(request: NextRequest) {
         },
         { status: 503 }
       );
+    }
+
+    const { system, user } = buildPromptWithIntent(ctx);
+
+    if (followUpAnswers.length === 0) {
+      const missingInfo = await detectMissingApplicationInfo(system, user);
+      if (missingInfo.needsUserInput && missingInfo.question) {
+        return NextResponse.json({
+          needsUserInput: true,
+          question: missingInfo.question,
+        });
+      }
     }
 
     const result = await generate({ system, user });

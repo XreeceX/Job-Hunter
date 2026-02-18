@@ -69,6 +69,61 @@ See `ARCHITECTURE.md` for design and data flow.
 
 All outputs use your profile and resume and the selected company row(s); no column names are hardcoded.
 
+## Job Tracker Integration (`/api/apply`)
+
+Use this route when another project (like `Job Tracker`) sends job data and application questions for this project to curate answers.
+
+- **Endpoint:** `POST /api/apply`
+- **Behavior:** Returns a direct JSON reply to the same call.
+  - `status: "completed"` with curated answers when context is sufficient.
+  - `status: "needs_user_input"` with a single follow-up question when required information is missing.
+- **Memory:** If caller sends `followUpAnswers`, answers are saved to profile `customQa` and reused later.
+
+Example request:
+
+```json
+{
+  "job": {
+    "companyName": "Acme",
+    "role": "Software Engineer Intern",
+    "location": "Remote",
+    "url": "https://acme.com/jobs/123",
+    "description": "Build internal tools with React + Node."
+  },
+  "applicationQuestions": [
+    { "id": "q1", "question": "Why do you want to join Acme?", "required": true },
+    { "id": "q2", "question": "What is your expected graduation date?", "required": true }
+  ]
+}
+```
+
+`applicationQuestions` can also be plain strings:
+
+```json
+{
+  "company": "Acme",
+  "role": "Software Engineer Intern",
+  "applicationQuestions": [
+    "Are you legally authorized to work in the UK?",
+    "What is your expected graduation date?"
+  ]
+}
+```
+
+Example follow-up request (after user answers):
+
+```json
+{
+  "job": { "companyName": "Acme", "role": "Software Engineer Intern" },
+  "applicationQuestions": [
+    { "id": "q2", "question": "What is your expected graduation date?", "required": true }
+  ],
+  "followUpAnswers": [
+    { "question": "What is your expected graduation date?", "answer": "May 2027" }
+  ]
+}
+```
+
 ## AI: Local dev vs Vercel production
 
 The app uses a **provider-agnostic** AI layer (`src/lib/services/ai/`). No OpenAI (or Groq) is imported outside that folder.
