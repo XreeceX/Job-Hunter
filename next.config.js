@@ -5,6 +5,9 @@ const nextConfig = {
       bodySizeLimit: '4mb',
     },
   },
+  compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
 };
 
 module.exports = nextConfig;

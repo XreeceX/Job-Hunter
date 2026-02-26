@@ -49,16 +49,18 @@ export async function DELETE(request: NextRequest) {
       },
     });
 
-    // Update rowCount for each affected upload
-    for (const uploadId of affectedUploadIds) {
-      const remainingCount = await prisma.companyRow.count({
-        where: { uploadId },
-      });
-      await prisma.upload.update({
-        where: { id: uploadId },
-        data: { rowCount: remainingCount },
-      });
-    }
+    // Update rowCount for each affected upload (batched in parallel)
+    await Promise.all(
+      affectedUploadIds.map(async (uploadId) => {
+        const remainingCount = await prisma.companyRow.count({
+          where: { uploadId },
+        });
+        return prisma.upload.update({
+          where: { id: uploadId },
+          data: { rowCount: remainingCount },
+        });
+      })
+    );
 
     return NextResponse.json({
       success: true,

@@ -30,6 +30,30 @@ function normalizeHeader(raw: string, index: number): string {
 }
 
 /**
+ * Convert raw sheet data array to ParsedSheet (shared logic).
+ */
+function dataToParsedSheet(data: unknown[][]): ParsedSheet {
+  if (data.length === 0) {
+    return { headers: [], rows: [], rowCount: 0 };
+  }
+  const rawHeaders = data[0] as unknown[];
+  const headers = rawHeaders.map((h, i) => normalizeHeader(String(h ?? ''), i));
+  const rows: Record<string, unknown>[] = [];
+  for (let i = 1; i < data.length; i++) {
+    const rawRow = data[i] as unknown[];
+    const row: Record<string, unknown> = {};
+    headers.forEach((h, j) => {
+      let val = rawRow[j];
+      if (val instanceof Date) val = val.toISOString();
+      else if (val != null && typeof val === 'object') val = JSON.stringify(val);
+      row[h] = val ?? '';
+    });
+    rows.push(row);
+  }
+  return { headers, rows, rowCount: rows.length };
+}
+
+/**
  * Parse buffer (from uploaded file) into headers + rows.
  * First row is always treated as headers. No column names are hardcoded.
  */
@@ -39,43 +63,14 @@ export function parseExcelBuffer(buffer: Buffer): ParsedSheet {
     raw: false,
     cellDates: true,
   });
-
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  if (!firstSheet) {
-    return { headers: [], rows: [], rowCount: 0 };
-  }
-
+  if (!firstSheet) return { headers: [], rows: [], rowCount: 0 };
   const data = XLSX.utils.sheet_to_json(firstSheet, {
     header: 1,
     defval: '',
     raw: false,
   }) as unknown[][];
-
-  if (data.length === 0) {
-    return { headers: [], rows: [], rowCount: 0 };
-  }
-
-  const rawHeaders = data[0] as unknown[];
-  const headers = rawHeaders.map((h, i) => normalizeHeader(String(h ?? ''), i));
-
-  const rows: Record<string, unknown>[] = [];
-  for (let i = 1; i < data.length; i++) {
-    const rawRow = data[i] as unknown[];
-    const row: Record<string, unknown> = {};
-    headers.forEach((h, j) => {
-      let val = rawRow[j];
-      if (val instanceof Date) val = val.toISOString();
-      else if (val != null && typeof val === 'object') val = JSON.stringify(val);
-      row[h] = val ?? '';
-    });
-    rows.push(row);
-  }
-
-  return {
-    headers,
-    rows,
-    rowCount: rows.length,
-  };
+  return dataToParsedSheet(data);
 }
 
 /**
@@ -84,40 +79,12 @@ export function parseExcelBuffer(buffer: Buffer): ParsedSheet {
 export function parseCsvString(csvText: string): ParsedSheet {
   const workbook = XLSX.read(csvText, { type: 'string', raw: false });
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  if (!firstSheet) {
-    return { headers: [], rows: [], rowCount: 0 };
-  }
-
+  if (!firstSheet) return { headers: [], rows: [], rowCount: 0 };
   const data = XLSX.utils.sheet_to_json(firstSheet, {
     header: 1,
     defval: '',
   }) as unknown[][];
-
-  if (data.length === 0) {
-    return { headers: [], rows: [], rowCount: 0 };
-  }
-
-  const rawHeaders = data[0] as unknown[];
-  const headers = rawHeaders.map((h, i) => normalizeHeader(String(h ?? ''), i));
-
-  const rows: Record<string, unknown>[] = [];
-  for (let i = 1; i < data.length; i++) {
-    const rawRow = data[i] as unknown[];
-    const row: Record<string, unknown> = {};
-    headers.forEach((h, j) => {
-      let val = rawRow[j];
-      if (val instanceof Date) val = val.toISOString();
-      else if (val != null && typeof val === 'object') val = JSON.stringify(val);
-      row[h] = val ?? '';
-    });
-    rows.push(row);
-  }
-
-  return {
-    headers,
-    rows,
-    rowCount: rows.length,
-  };
+  return dataToParsedSheet(data);
 }
 
 /**

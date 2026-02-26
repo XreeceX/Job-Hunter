@@ -74,8 +74,7 @@ export function Dashboard() {
     setUploadsError(null);
     setUploadsLoading(true);
     try {
-      warmUpBackground();
-      await new Promise((r) => setTimeout(r, 400));
+      warmUpBackground(); // Fire-and-forget; don't block
       const res = await fetch('/api/uploads');
       
       if (!res.ok) {
@@ -324,6 +323,9 @@ export function Dashboard() {
               selectedRowIds={selectedRowIds}
               onToggleRow={toggleRow}
               onSelectAll={selectAllRows}
+              onSelectVisible={(ids) =>
+                setSelectedRowIds((prev) => new Set([...prev, ...ids]))
+              }
               onClearSelection={clearSelection}
               onDeleteRows={handleDeleteRows}
               totalRows={totalRows}

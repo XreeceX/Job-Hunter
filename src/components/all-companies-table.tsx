@@ -33,6 +33,7 @@ interface AllCompaniesTableProps {
   selectedRowIds: Set<string>;
   onToggleRow: (id: string) => void;
   onSelectAll: () => void;
+  onSelectVisible?: (ids: string[]) => void;
   onClearSelection: () => void;
   onDeleteRows: (ids: string[]) => Promise<void>;
   totalRows: number;
@@ -46,6 +47,7 @@ export function AllCompaniesTable({
   selectedRowIds,
   onToggleRow,
   onSelectAll,
+  onSelectVisible,
   onClearSelection,
   onDeleteRows,
   totalRows,
@@ -122,11 +124,11 @@ export function AllCompaniesTable({
     const allSelected = visibleIds.every((id) => selectedRowIds.has(id));
     if (allSelected) {
       onClearSelection();
+    } else if (onSelectVisible) {
+      onSelectVisible(visibleIds);
     } else {
       visibleIds.forEach((id) => {
-        if (!selectedRowIds.has(id)) {
-          onToggleRow(id);
-        }
+        if (!selectedRowIds.has(id)) onToggleRow(id);
       });
     }
   };
