@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrCreateProfile, upsertProfileQaItems } from '@/lib/services/user-profile.service';
-import { buildPromptWithIntent } from '@/lib/services/prompt-builder.service';
+import { buildPromptWithIntent, fetchPortfolioContent } from '@/lib/services/prompt-builder.service';
 import { generate } from '@/lib/services/ai-execution.service';
 import { isLLMConfigured } from '@/lib/services/ai';
 import { z } from 'zod';
@@ -146,11 +146,14 @@ export async function POST(request: NextRequest) {
 
     const profile = followUpAnswers.length > 0 ? await getOrCreateProfile() : initialProfile;
 
+    const portfolioContent = await fetchPortfolioContent(profile.portfolioUrl);
+
     const ctx = {
       profile,
       companyRows: orderedRows,
       userPrompt,
       intentHint,
+      portfolioContent,
     };
 
     if (!isLLMConfigured()) {

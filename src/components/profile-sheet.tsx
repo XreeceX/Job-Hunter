@@ -20,6 +20,7 @@ interface ProfileData {
   resumeFileName?: string | null;
   customQa?: Array<{ question: string; answer: string }> | null;
   preferences?: string | null;
+  portfolioUrl?: string | null;
 }
 
 export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
@@ -42,6 +43,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
             skills: data.skills ?? '',
             customQa: data.customQa ?? [],
             preferences: data.preferences ?? '',
+            portfolioUrl: data.portfolioUrl ?? '',
           });
         })
         .catch(() => setProfile({}));
@@ -138,6 +140,16 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
                 onChange={(e) => setForm((f) => ({ ...f, skills: e.target.value }))}
                 placeholder="Comma-separated or list"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>Portfolio URL</Label>
+              <input
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+                value={form.portfolioUrl ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, portfolioUrl: e.target.value }))}
+                placeholder="https://your-portfolio.vercel.app"
+              />
+              <p className="text-xs text-[var(--muted)]">AI will fetch this for extra context when generating.</p>
             </div>
             <Card>
               <CardHeader className="pb-2">

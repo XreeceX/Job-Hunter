@@ -7,6 +7,7 @@ import Groq from 'groq-sdk';
 import type { RunLLMOptions, RunLLMResult } from './types';
 
 const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
 export async function runGroq(options: RunLLMOptions): Promise<RunLLMResult> {
   const apiKey = process.env.GROQ_API_KEY;
@@ -14,13 +15,16 @@ export async function runGroq(options: RunLLMOptions): Promise<RunLLMResult> {
     throw new Error('GROQ_API_KEY is not set');
   }
 
-  const { system, user, attachments = [], model = DEFAULT_GROQ_MODEL, maxTokens = 2048 } = options;
+  const { system, user, attachments = [], model, maxTokens = 2048 } = options;
   const client = new Groq({ apiKey });
 
+  const hasImages = attachments.length > 0;
+  const effectiveModel = model ?? (hasImages ? GROQ_VISION_MODEL : DEFAULT_GROQ_MODEL);
+
   const userContent =
-    attachments.length > 0
+    hasImages
       ? ([
-          { type: 'text', text: user },
+          { type: 'text', text: user || 'Please answer based on the image(s) and my profile.' },
           ...attachments.map((img) => ({
             type: 'image_url',
             image_url: { url: img.dataUrl },
@@ -29,7 +33,7 @@ export async function runGroq(options: RunLLMOptions): Promise<RunLLMResult> {
       : user;
 
   const completion = await client.chat.completions.create({
-    model,
+    model: effectiveModel,
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: userContent as any },

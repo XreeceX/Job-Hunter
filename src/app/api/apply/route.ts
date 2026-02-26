@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { buildPromptWithIntent } from '@/lib/services/prompt-builder.service';
+import { buildPromptWithIntent, fetchPortfolioContent } from '@/lib/services/prompt-builder.service';
 import { generate } from '@/lib/services/ai-execution.service';
 import { isLLMConfigured } from '@/lib/services/ai';
 import { getOrCreateProfile, upsertProfileQaItems } from '@/lib/services/user-profile.service';
@@ -280,6 +280,7 @@ export async function POST(request: NextRequest) {
     }
 
     const profile = await getOrCreateProfile();
+    const portfolioContent = await fetchPortfolioContent(profile.portfolioUrl);
     const companyRows = [{ id: 'external-job', data: buildCompanyData(normalizedJob) }];
     const userPrompt = buildApplyUserPrompt(normalizedQuestions);
 
@@ -288,6 +289,7 @@ export async function POST(request: NextRequest) {
       companyRows,
       userPrompt,
       intentHint: intentHint ?? 'custom',
+      portfolioContent,
     });
 
     const result = await generate({

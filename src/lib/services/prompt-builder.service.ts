@@ -12,6 +12,7 @@ export interface PromptContext {
   companyRows: Array<{ id: string; data: Record<string, unknown> }>;
   userPrompt: string;
   intentHint?: string;
+  portfolioContent?: string | null;
 }
 
 const SYSTEM_PREFIX = `You are an expert job search assistant. You help the user with personalized, professional content for their job hunt.
@@ -31,6 +32,7 @@ const MAX_RESUME_CHARS = 3000; // Resume text: keep start (most recent experienc
 const MAX_EXPERIENCE_CHARS = 600;
 const MAX_SKILLS_CHARS = 400;
 const MAX_QA_ITEMS = 5;
+const MAX_PORTFOLIO_CHARS = 4000;
 const MAX_USER_MESSAGE_CHARS = 28_000; // ~7k tokens at ~4 chars/token; leaves room for response
 
 /**
@@ -94,6 +96,45 @@ function formatProfileContext(profile: UserProfile | null): string {
   return parts.join('\n');
 }
 
+function stripHtmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Fetch portfolio page and return plain text. Used when AI needs more context.
+ */
+export async function fetchPortfolioContent(url: string | null | undefined): Promise<string | null> {
+  const raw = (url ?? process.env.PORTFOLIO_URL ?? '').trim();
+  if (!raw) return null;
+  let target: string;
+  try {
+    target = new URL(raw).toString();
+  } catch {
+    return null;
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
+  try {
+    const res = await fetch(target, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'JobHunter/1.0 (portfolio-context)' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const html = await res.text();
+    const text = stripHtmlToText(html).slice(0, MAX_PORTFOLIO_CHARS);
+    return text.length > 0 ? text : null;
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
+
 /**
  * Build full prompt (system + user). Applies row limit and soft character budget for serverless.
  */
@@ -109,16 +150,19 @@ export function buildPrompt(ctx: PromptContext): { system: string; user: string 
 
   const profileSection = formatProfileContext(ctx.profile);
 
-  const system = `${SYSTEM_PREFIX}\n\nUse the following context to personalize your response.`;
-  let user = [
+  const sections: string[] = [
     '## Context',
     '### User profile & resume',
     profileSection,
-    '### Company/companies',
-    companySection,
-    '## User request',
-    ctx.userPrompt,
-  ].join('\n\n');
+  ];
+  if (ctx.portfolioContent && ctx.portfolioContent.trim().length > 0) {
+    sections.push('### Portfolio (additional context)');
+    sections.push(ctx.portfolioContent.trim());
+  }
+  sections.push('### Company/companies', companySection, '## User request', ctx.userPrompt);
+
+  const system = `${SYSTEM_PREFIX}\n\nUse the following context to personalize your response.`;
+  let user = sections.join('\n\n');
 
   if (user.length > MAX_USER_MESSAGE_CHARS) {
     user = user.slice(0, MAX_USER_MESSAGE_CHARS) + '\n\n[Context truncated for length.]';

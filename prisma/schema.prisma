@@ -31,6 +31,7 @@ model UserProfile {
   resumeStoragePath String?  @map("resume_storage_path") // Local or blob path
   customQa          Json?    @map("custom_qa") // [{ question, answer }]
   preferences       String?  // Free-form or JSON
+  portfolioUrl      String?  @map("portfolio_url") // Fetched for extra AI context
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
