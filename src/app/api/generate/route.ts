@@ -30,9 +30,6 @@ const bodySchema = z.object({
     .optional(),
 });
 
-const NO_COMPANIES_MESSAGE =
-  'Select at least one company from the table above so the AI can personalize the output. If you don’t see any uploads or companies, refresh the page or click Retry in the Spreadsheet section—your data is saved.';
-
 interface MissingInfoResult {
   needsUserInput: boolean;
   question?: string;
@@ -88,13 +85,6 @@ export async function POST(request: NextRequest) {
 
     const { companyRowIds, userPrompt, intentHint, followUpAnswers = [] } = parsed.data;
 
-    if (companyRowIds.length === 0) {
-      return NextResponse.json(
-        { error: NO_COMPANIES_MESSAGE },
-        { status: 400 }
-      );
-    }
-
     const [initialProfile, companyRows] = await Promise.all([
       getOrCreateProfile(),
       companyRowIds.length > 0
@@ -109,7 +99,7 @@ export async function POST(request: NextRequest) {
       await upsertProfileQaItems(followUpAnswers);
     }
 
-    if (companyRows.length === 0) {
+    if (companyRowIds.length > 0 && companyRows.length === 0) {
       return NextResponse.json(
         {
           error:
@@ -123,7 +113,7 @@ export async function POST(request: NextRequest) {
       .map((id) => companyRows.find((r) => r.id === id))
       .filter(Boolean) as { id: string; data: Record<string, unknown> }[];
 
-    if (orderedRows.length === 0) {
+    if (companyRowIds.length > 0 && orderedRows.length === 0) {
       return NextResponse.json(
         {
           error:

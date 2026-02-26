@@ -74,13 +74,71 @@ interface ApplyResult {
   answers?: CuratedAnswer[];
 }
 
-function parseJsonBlock(text: string): unknown {
-  const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-  return JSON.parse(cleaned);
+function stripCodeFences(text: string): string {
+  return text.replace(/```json/gi, '').replace(/```/g, '').trim();
+}
+
+function extractFirstJsonObject(text: string): string | null {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < text.length; i += 1) {
+    const char = text[i];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '{') {
+      depth += 1;
+      continue;
+    }
+
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+function parseJsonLenient(text: string): unknown {
+  const cleaned = stripCodeFences(text).replace(/^\uFEFF/, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const extracted = extractFirstJsonObject(cleaned);
+    if (!extracted) throw new Error('No JSON object found in model response.');
+    try {
+      return JSON.parse(extracted);
+    } catch {
+      const repaired = extracted.replace(/,\s*([}\]])/g, '$1');
+      return JSON.parse(repaired);
+    }
+  }
 }
 
 function parseApplyResult(raw: string): ApplyResult {
-  const parsed = parseJsonBlock(raw) as {
+  const parsed = parseJsonLenient(raw) as {
     needsUserInput?: boolean;
     followUpQuestion?: string;
     answers?: CuratedAnswer[];
@@ -178,7 +236,8 @@ function buildApplyUserPrompt(
     'You are filling a job/internship application form for the user.',
     'Use ONLY the provided context (profile/resume/custom QA + job data).',
     'If a required detail is missing, do NOT invent. Ask one most important follow-up question.',
-    'Return STRICT JSON only with one of these shapes:',
+    'Return ONLY one raw JSON object. No markdown, no explanation, no code fences.',
+    'Return STRICT JSON with one of these shapes:',
     '{"needsUserInput": true, "followUpQuestion": "single question"}',
     '{"needsUserInput": false, "answers": [{"id":"optional","question":"...","answer":"..."}]}',
     '',
@@ -237,13 +296,45 @@ export async function POST(request: NextRequest) {
       maxTokens: 1600,
     });
 
-    const applyResult = parseApplyResult(result.text);
+    let applyResult: ApplyResult;
+    let modelUsed = result.model;
+    let usage = result.usage;
+    try {
+      applyResult = parseApplyResult(result.text);
+    } catch (firstError) {
+      const retry = await generate({
+        system,
+        user: [
+          user,
+          '',
+          'Your previous response was not valid JSON.',
+          'Return only one valid JSON object. No surrounding text.',
+        ].join('\n'),
+        maxTokens: 1200,
+      });
+      try {
+        applyResult = parseApplyResult(retry.text);
+        modelUsed = retry.model;
+        usage = retry.usage;
+      } catch (retryError) {
+        const preview = stripCodeFences(retry.text).replace(/\s+/g, ' ').slice(0, 200);
+        console.error('Apply parse failed after retry', {
+          firstError: firstError instanceof Error ? firstError.message : String(firstError),
+          retryError: retryError instanceof Error ? retryError.message : String(retryError),
+          preview,
+        });
+        return NextResponse.json(
+          { error: 'Could not parse AI response as JSON.' },
+          { status: 502 }
+        );
+      }
+    }
 
     if (applyResult.needsUserInput) {
       return NextResponse.json({
         status: 'needs_user_input',
         question: applyResult.followUpQuestion,
-        model: result.model,
+        model: modelUsed,
       });
     }
 
@@ -251,8 +342,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       status: 'completed',
       answers,
-      model: result.model,
-      usage: result.usage,
+      model: modelUsed,
+      usage,
     });
   } catch (e) {
     console.error('Apply route error:', e);
