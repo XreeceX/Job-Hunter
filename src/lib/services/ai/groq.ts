@@ -14,14 +14,25 @@ export async function runGroq(options: RunLLMOptions): Promise<RunLLMResult> {
     throw new Error('GROQ_API_KEY is not set');
   }
 
-  const { system, user, model = DEFAULT_GROQ_MODEL, maxTokens = 2048 } = options;
+  const { system, user, attachments = [], model = DEFAULT_GROQ_MODEL, maxTokens = 2048 } = options;
   const client = new Groq({ apiKey });
+
+  const userContent =
+    attachments.length > 0
+      ? ([
+          { type: 'text', text: user },
+          ...attachments.map((img) => ({
+            type: 'image_url',
+            image_url: { url: img.dataUrl },
+          })),
+        ] as unknown)
+      : user;
 
   const completion = await client.chat.completions.create({
     model,
     messages: [
       { role: 'system', content: system },
-      { role: 'user', content: user },
+      { role: 'user', content: userContent as any },
     ],
     max_tokens: maxTokens,
     temperature: 0.7,

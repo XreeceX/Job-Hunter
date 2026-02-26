@@ -10,6 +10,10 @@ import type { AIGenerateResult } from '@/lib/types';
 export interface GenerateOptions {
   system: string;
   user: string;
+  attachments?: Array<{
+    dataUrl: string;
+    mimeType?: string;
+  }>;
   model?: string;
   maxTokens?: number;
 }
@@ -21,6 +25,7 @@ export async function generate(options: GenerateOptions): Promise<AIGenerateResu
   const result = await runLLM({
     system: options.system,
     user: options.user,
+    attachments: options.attachments,
     model: options.model,
     maxTokens: options.maxTokens,
   });

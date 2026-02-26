@@ -14,7 +14,16 @@ export interface PromptContext {
   intentHint?: string;
 }
 
-const SYSTEM_PREFIX = `You are an expert job search assistant. You help the user with personalized, professional content for their job hunt. Be concise, specific, and use the exact details provided. Output in the requested format (e.g. email, cover letter, markdown).`;
+const SYSTEM_PREFIX = `You are an expert job search assistant. You help the user with personalized, professional content for their job hunt.
+
+Write in a natural human tone:
+- Avoid robotic phrasing, filler, and generic buzzwords.
+- Use varied sentence length and natural transitions.
+- Sound confident and specific, but not stiff or overly formal.
+- Prefer concrete examples from the provided context over vague claims.
+- Do not invent facts that are not in the context.
+
+Output in the requested format (e.g. email, cover letter, markdown).`;
 
 // Serverless-friendly limits (no tokenizer; character-based soft budget)
 const MAX_COMPANY_ROWS = 10;
@@ -68,6 +77,7 @@ function formatProfileContext(profile: UserProfile | null): string {
     parts.push(`Experience: ${profile.experienceSummary.slice(0, MAX_EXPERIENCE_CHARS)}`);
   }
   if (profile.skills) parts.push(`Skills: ${profile.skills.slice(0, MAX_SKILLS_CHARS)}`);
+  if (profile.preferences) parts.push(`Writing preferences: ${profile.preferences.slice(0, 600)}`);
   if (profile.resumeText) {
     parts.push(`Resume (excerpt):\n${profile.resumeText.slice(0, MAX_RESUME_CHARS)}`);
   }
@@ -123,13 +133,13 @@ export function buildPrompt(ctx: PromptContext): { system: string; user: string 
 export function getIntentInstruction(hint?: string): string {
   switch (hint) {
     case 'cold_email':
-      return 'Write a short, professional cold email to this company. Be direct and mention the role if provided.';
+      return 'Write a short, professional cold email to this company. Keep it warm and direct, and mention the role if provided. Avoid sounding like a template.';
     case 'cover_letter':
-      return 'Write a tailored cover letter for this company and role. Use the resume context to highlight relevant experience.';
+      return 'Write a tailored cover letter for this company and role. Use the resume context to highlight relevant experience in a natural, human voice.';
     case 'research':
       return 'Summarize key information about this company and role that would help in an application or interview.';
     case 'interview_qa':
-      return 'Answer common interview questions tailored to this role and company, using the user profile and resume.';
+      return 'Answer common interview questions tailored to this role and company, using the user profile and resume. Keep answers clear, natural, and conversational.';
     default:
       return '';
   }

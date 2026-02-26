@@ -12,14 +12,25 @@ export async function runOpenAI(options: RunLLMOptions): Promise<RunLLMResult> {
     throw new Error('OPENAI_API_KEY is not set');
   }
 
-  const { system, user, model = 'gpt-4o', maxTokens = 2048 } = options;
+  const { system, user, attachments = [], model = 'gpt-4o', maxTokens = 2048 } = options;
   const client = new OpenAI({ apiKey });
+
+  const userContent =
+    attachments.length > 0
+      ? ([
+          { type: 'text', text: user },
+          ...attachments.map((img) => ({
+            type: 'image_url',
+            image_url: { url: img.dataUrl },
+          })),
+        ] as unknown)
+      : user;
 
   const completion = await client.chat.completions.create({
     model,
     messages: [
       { role: 'system', content: system },
-      { role: 'user', content: user },
+      { role: 'user', content: userContent as any },
     ],
     max_tokens: maxTokens,
     temperature: 0.7,

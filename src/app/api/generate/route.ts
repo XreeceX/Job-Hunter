@@ -14,21 +14,42 @@ import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
-const bodySchema = z.object({
-  companyRowIds: z.array(z.string()).min(0),
-  userPrompt: z.string().min(1),
-  intentHint: z
-    .enum(['cold_email', 'cover_letter', 'research', 'interview_qa', 'custom'])
-    .optional(),
-  followUpAnswers: z
-    .array(
-      z.object({
-        question: z.string().min(1),
-        answer: z.string().min(1),
-      })
-    )
-    .optional(),
-});
+const bodySchema = z
+  .object({
+    companyRowIds: z.array(z.string()).min(0),
+    userPrompt: z.string().default(''),
+    intentHint: z
+      .enum(['cold_email', 'cover_letter', 'research', 'interview_qa', 'custom'])
+      .optional(),
+    followUpAnswers: z
+      .array(
+        z.object({
+          question: z.string().min(1),
+          answer: z.string().min(1),
+        })
+      )
+      .optional(),
+    attachments: z
+      .array(
+        z.object({
+          dataUrl: z.string().startsWith('data:image/'),
+          mimeType: z.string().optional(),
+        })
+      )
+      .max(5)
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hasPrompt = data.userPrompt.trim().length > 0;
+    const hasAttachments = (data.attachments?.length ?? 0) > 0;
+    if (!hasPrompt && !hasAttachments) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Enter a request or paste an image.',
+        path: ['userPrompt'],
+      });
+    }
+  });
 
 interface MissingInfoResult {
   needsUserInput: boolean;
@@ -83,7 +104,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { companyRowIds, userPrompt, intentHint, followUpAnswers = [] } = parsed.data;
+    const { companyRowIds, userPrompt, intentHint, followUpAnswers = [], attachments = [] } = parsed.data;
 
     const [initialProfile, companyRows] = await Promise.all([
       getOrCreateProfile(),
@@ -154,7 +175,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = await generate({ system, user });
+    const result = await generate({ system, user, attachments });
 
     await prisma.generatedOutput.create({
       data: {

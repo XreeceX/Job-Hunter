@@ -6,6 +6,10 @@
 export interface RunLLMOptions {
   system: string;
   user: string;
+  attachments?: Array<{
+    dataUrl: string;
+    mimeType?: string;
+  }>;
   model?: string;
   maxTokens?: number;
 }
