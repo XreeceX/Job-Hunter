@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     const profile = followUpAnswers.length > 0 ? await getOrCreateProfile() : initialProfile;
 
-    const portfolioContent = await fetchPortfolioContent(profile.portfolioUrl);
+    const portfolioContent = await fetchPortfolioContent();
 
     const ctx = {
       profile,

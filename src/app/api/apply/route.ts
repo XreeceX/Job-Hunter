@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
     }
 
     const profile = await getOrCreateProfile();
-    const portfolioContent = await fetchPortfolioContent(profile.portfolioUrl);
+    const portfolioContent = await fetchPortfolioContent();
     const companyRows = [{ id: 'external-job', data: buildCompanyData(normalizedJob) }];
     const userPrompt = buildApplyUserPrompt(normalizedQuestions);
 

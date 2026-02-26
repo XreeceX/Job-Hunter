@@ -43,7 +43,6 @@ export interface UserProfileInput {
   resumeText?: string | null;
   customQa?: Array<{ question: string; answer: string }> | null;
   preferences?: string | null;
-  portfolioUrl?: string | null;
 }
 
 export interface GenerateInput {

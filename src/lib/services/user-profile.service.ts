@@ -49,7 +49,6 @@ export async function updateProfile(input: UserProfileInput) {
       resumeText: input.resumeText ?? profile.resumeText,
       customQa: (input.customQa ?? profile.customQa) as object | undefined,
       preferences: input.preferences ?? profile.preferences,
-      portfolioUrl: input.portfolioUrl !== undefined ? input.portfolioUrl : profile.portfolioUrl,
     },
   });
 }

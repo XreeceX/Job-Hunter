@@ -108,8 +108,9 @@ function stripHtmlToText(html: string): string {
 /**
  * Fetch portfolio page and return plain text. Used when AI needs more context.
  */
-export async function fetchPortfolioContent(url: string | null | undefined): Promise<string | null> {
-  const raw = (url ?? process.env.PORTFOLIO_URL ?? '').trim();
+/** Fetches portfolio content. Uses PORTFOLIO_URL from Vercel env (set in Project → Settings → Environment Variables). */
+export async function fetchPortfolioContent(_url?: string | null): Promise<string | null> {
+  const raw = (process.env.PORTFOLIO_URL ?? '').trim();
   if (!raw) return null;
   let target: string;
   try {

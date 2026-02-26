@@ -20,7 +20,6 @@ const updateSchema = z.object({
     .nullable()
     .optional(),
   preferences: z.string().nullable().optional(),
-  portfolioUrl: z.preprocess((v) => (v === '' ? null : v), z.string().url().nullable().optional()),
 });
 
 export async function GET() {
@@ -36,7 +35,6 @@ export async function GET() {
       resumeFileName: profile.resumeFileName,
       customQa: profile.customQa,
       preferences: profile.preferences,
-      portfolioUrl: profile.portfolioUrl,
     });
   } catch (e) {
     console.error('Profile get error:', e);
@@ -64,7 +62,6 @@ export async function PUT(request: NextRequest) {
       resumeFileName: profile.resumeFileName,
       customQa: profile.customQa,
       preferences: profile.preferences,
-      portfolioUrl: profile.portfolioUrl,
     });
   } catch (e) {
     console.error('Profile update error:', e);
