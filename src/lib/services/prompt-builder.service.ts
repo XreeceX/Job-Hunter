@@ -13,6 +13,8 @@ export interface PromptContext {
   userPrompt: string;
   intentHint?: string;
   portfolioContent?: string | null;
+  /** When true, user provided image(s)—prioritize image content over other context */
+  hasAttachments?: boolean;
 }
 
 const SYSTEM_PREFIX = `You are an expert job search assistant. You help the user with personalized, professional content for their job hunt.
@@ -144,7 +146,9 @@ export function buildPrompt(ctx: PromptContext): { system: string; user: string 
   const companyBlocks = rowsLimited.map((row) => formatCompanyContext(row.data));
   const companySection =
     companyBlocks.length === 0
-      ? 'No specific company selected.'
+      ? ctx.hasAttachments
+        ? 'The user has provided an image—use the image as the primary source for company/role context. Ignore any stale table data.'
+        : 'No specific company selected.'
       : companyBlocks.length === 1
         ? `Company:\n${companyBlocks[0]}`
         : `Companies (${companyBlocks.length}):\n${companyBlocks.map((c, i) => `--- Company ${i + 1} ---\n${c}`).join('\n')}`;

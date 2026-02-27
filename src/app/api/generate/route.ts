@@ -148,12 +148,17 @@ export async function POST(request: NextRequest) {
 
     const portfolioContent = await fetchPortfolioContent();
 
+    // When user provides image attachments, use those as primary context—ignore table selection
+    // (e.g. pasted Woven application should not use previously selected Quantinuum rows)
+    const effectiveCompanyRows = attachments.length > 0 ? [] : orderedRows;
+
     const ctx = {
       profile,
-      companyRows: orderedRows,
+      companyRows: effectiveCompanyRows,
       userPrompt,
       intentHint,
       portfolioContent,
+      hasAttachments: attachments.length > 0,
     };
 
     if (!isLLMConfigured()) {
