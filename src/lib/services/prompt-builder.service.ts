@@ -33,6 +33,7 @@ Output in the requested format (e.g. email, cover letter, markdown).`;
 // Serverless-friendly limits (no tokenizer; character-based soft budget)
 const MAX_COMPANY_ROWS = 10;
 const MAX_RESUME_CHARS = 3000; // Resume text: keep start (most recent experience first)
+const MAX_COVER_LETTER_CHARS = 2000;
 const MAX_EXPERIENCE_CHARS = 600;
 const MAX_SKILLS_CHARS = 400;
 const MAX_QA_ITEMS = 5;
@@ -86,6 +87,9 @@ function formatProfileContext(profile: UserProfile | null): string {
   if (profile.preferences) parts.push(`Writing preferences: ${profile.preferences.slice(0, 600)}`);
   if (profile.resumeText) {
     parts.push(`Resume (excerpt):\n${profile.resumeText.slice(0, MAX_RESUME_CHARS)}`);
+  }
+  if (profile.coverLetter) {
+    parts.push(`Cover letter (base/template):\n${profile.coverLetter.slice(0, MAX_COVER_LETTER_CHARS)}`);
   }
   const qa = profile.customQa as Array<{ question: string; answer: string }> | null;
   if (Array.isArray(qa) && qa.length) {

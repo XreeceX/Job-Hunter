@@ -17,6 +17,7 @@ interface ProfileData {
   targetRole?: string | null;
   experienceSummary?: string | null;
   skills?: string | null;
+  coverLetter?: string | null;
   resumeFileName?: string | null;
   customQa?: Array<{ question: string; answer: string }> | null;
   preferences?: string | null;
@@ -40,6 +41,7 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
             targetRole: data.targetRole ?? '',
             experienceSummary: data.experienceSummary ?? '',
             skills: data.skills ?? '',
+            coverLetter: data.coverLetter ?? '',
             customQa: data.customQa ?? [],
             preferences: data.preferences ?? '',
           });
@@ -129,6 +131,16 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
                 onChange={(e) => setForm((f) => ({ ...f, experienceSummary: e.target.value }))}
                 placeholder="Brief experience summary for AI context"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>Cover letter (base / template)</Label>
+              <textarea
+                className="min-h-[120px] w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+                value={form.coverLetter ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, coverLetter: e.target.value }))}
+                placeholder="Paste your cover letter or a template. AI will tailor it per request."
+              />
+              <p className="text-xs text-[var(--muted)]">Used for personalized cover letters and similar outputs.</p>
             </div>
             <div className="grid gap-2">
               <Label>Skills</Label>

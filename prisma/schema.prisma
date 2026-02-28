@@ -28,6 +28,7 @@ model UserProfile {
   skills            String?  // JSON array or comma-separated
   resumeText        String?  @map("resume_text") // Extracted text for AI
   resumeFileName    String?  @map("resume_file_name")
+  coverLetter       String?  @map("cover_letter") @db.Text // Template or base cover letter for AI
   resumeStoragePath String?  @map("resume_storage_path") // Local or blob path
   customQa          Json?    @map("custom_qa") // [{ question, answer }]
   preferences       String?  // Free-form or JSON

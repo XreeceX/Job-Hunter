@@ -47,6 +47,7 @@ export async function updateProfile(input: UserProfileInput) {
       experienceSummary: input.experienceSummary ?? profile.experienceSummary,
       skills: input.skills ?? profile.skills,
       resumeText: input.resumeText ?? profile.resumeText,
+      coverLetter: input.coverLetter !== undefined ? input.coverLetter : profile.coverLetter,
       customQa: (input.customQa ?? profile.customQa) as object | undefined,
       preferences: input.preferences ?? profile.preferences,
     },
