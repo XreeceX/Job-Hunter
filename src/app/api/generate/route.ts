@@ -29,6 +29,8 @@ const bodySchema = z
         })
       )
       .optional(),
+    /** User clicked "Yes, same company"—skip missing-info check and generate with current context */
+    sameCompanyConfirmed: z.boolean().optional(),
     attachments: z
       .array(
         z.object({
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { companyRowIds, userPrompt, intentHint, followUpAnswers = [], attachments = [] } = parsed.data;
+    const { companyRowIds, userPrompt, intentHint, followUpAnswers = [], sameCompanyConfirmed, attachments = [] } = parsed.data;
 
     const [initialProfile, companyRows] = await Promise.all([
       getOrCreateProfile(),
@@ -173,12 +175,15 @@ export async function POST(request: NextRequest) {
 
     const { system, user } = buildPromptWithIntent(ctx);
 
-    if (followUpAnswers.length === 0) {
+    // Skip "more details" check when: (1) we have saved Q&A, or (2) user confirmed same company
+    const hasSavedQa = Array.isArray(profile.customQa) && profile.customQa.length > 0;
+    if (followUpAnswers.length === 0 && !hasSavedQa && !sameCompanyConfirmed) {
       const missingInfo = await detectMissingApplicationInfo(system, user);
       if (missingInfo.needsUserInput && missingInfo.question) {
         return NextResponse.json({
           needsUserInput: true,
           question: missingInfo.question,
+          sameCompanyCheck: true,
         });
       }
     }

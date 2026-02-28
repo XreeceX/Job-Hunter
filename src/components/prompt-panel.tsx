@@ -47,6 +47,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
   const [copied, setCopied] = useState(false);
   const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
   const [followUpAnswer, setFollowUpAnswer] = useState('');
+  const [sameCompanyCheck, setSameCompanyCheck] = useState(false);
   const [attachments, setAttachments] = useState<PastedImageAttachment[]>([]);
 
   const removeAttachment = (id: string) => {
@@ -110,6 +111,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
     setOutput('');
     setFollowUpQuestion(null);
     setFollowUpAnswer('');
+    setSameCompanyCheck(false);
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -128,8 +130,40 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       if (data.needsUserInput && data.question) {
         setFollowUpQuestion(data.question);
+        setSameCompanyCheck(data.sameCompanyCheck === true);
         return;
       }
+      setOutput(data.text ?? '');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Generation failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmSameCompany = async () => {
+    setError(null);
+    setLoading(true);
+    setOutput('');
+    setFollowUpQuestion(null);
+    setSameCompanyCheck(false);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyRowIds: selectedCompanyIds,
+          userPrompt: prompt.trim(),
+          intentHint: intentHint || undefined,
+          sameCompanyConfirmed: true,
+          attachments: attachments.map((item) => ({
+            dataUrl: item.dataUrl,
+            mimeType: item.mimeType,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Generation failed');
       setOutput(data.text ?? '');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed');
@@ -269,22 +303,43 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
         )}
         {followUpQuestion && (
           <div className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-            <Label>AI needs one more detail</Label>
-            <p className="text-sm text-[var(--muted)]">{followUpQuestion}</p>
-            <textarea
-              className="min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              placeholder="Your answer (this will be saved for future applications)"
-              value={followUpAnswer}
-              onChange={(e) => setFollowUpAnswer(e.target.value)}
-              disabled={loading}
-            />
-            <Button
-              onClick={submitFollowUpAnswer}
-              disabled={loading || !followUpAnswer.trim()}
-              className="w-full"
-            >
-              {loading ? 'Submitting…' : 'Submit answer and continue'}
-            </Button>
+            {sameCompanyCheck ? (
+              <>
+                <Label>Is this for the same company/role as before?</Label>
+                <p className="text-xs text-[var(--muted)]">If yes, we&apos;ll use your existing context. If no, we&apos;ll ask for more details.</p>
+                <div className="flex gap-2">
+                  <Button onClick={confirmSameCompany} disabled={loading} variant="default">
+                    Yes, same company
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setSameCompanyCheck(false)}
+                    disabled={loading}
+                  >
+                    No, different company
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Label>AI needs one more detail</Label>
+                <p className="text-sm text-[var(--muted)]">{followUpQuestion}</p>
+                <textarea
+                  className="min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  placeholder="Your answer (this will be saved for future applications)"
+                  value={followUpAnswer}
+                  onChange={(e) => setFollowUpAnswer(e.target.value)}
+                  disabled={loading}
+                />
+                <Button
+                  onClick={submitFollowUpAnswer}
+                  disabled={loading || !followUpAnswer.trim()}
+                  className="w-full"
+                >
+                  {loading ? 'Submitting…' : 'Submit answer and continue'}
+                </Button>
+              </>
+            )}
           </div>
         )}
         {output && (
