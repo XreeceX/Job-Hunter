@@ -47,7 +47,6 @@ export async function updateProfile(input: UserProfileInput) {
       experienceSummary: input.experienceSummary ?? profile.experienceSummary,
       skills: input.skills ?? profile.skills,
       resumeText: input.resumeText ?? profile.resumeText,
-      coverLetter: input.coverLetter !== undefined ? input.coverLetter : profile.coverLetter,
       customQa: (input.customQa ?? profile.customQa) as object | undefined,
       preferences: input.preferences ?? profile.preferences,
     },
@@ -140,6 +139,59 @@ export async function saveResume(
       resumeFileName: fileName,
       resumeStoragePath: storagePath,
       resumeText: extractedText || profile.resumeText,
+    },
+  });
+
+  return { path: storagePath, extractedText };
+}
+
+/**
+ * Store cover letter file and extract text.
+ * Uses same storage as resume (Blob or local).
+ */
+export async function saveCoverLetter(
+  buffer: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<{ path: string; extractedText: string }> {
+  const profile = await getOrCreateProfile();
+  const safeName = `${Date.now()}-cover-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+  let storagePath: string;
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import('@vercel/blob');
+    const blob = await put(`cover-letters/${safeName}`, buffer, {
+      access: 'public',
+      addRandomSuffix: true,
+      contentType: mimeType || undefined,
+    });
+    storagePath = blob.url;
+  } else {
+    const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+    await fs.mkdir(uploadDir, { recursive: true });
+    storagePath = path.join(uploadDir, safeName);
+    await fs.writeFile(storagePath, buffer);
+  }
+
+  let extractedText = '';
+  if (mimeType === 'application/pdf') {
+    try {
+      const pdfParse = (await import('pdf-parse')).default;
+      const data = await pdfParse(buffer);
+      extractedText = (data?.text ?? '').trim();
+    } catch {
+      extractedText = '';
+    }
+  } else if (mimeType === 'text/plain' || fileName.toLowerCase().endsWith('.txt')) {
+    extractedText = buffer.toString('utf-8').trim();
+  }
+
+  await prisma.userProfile.update({
+    where: { id: profile.id },
+    data: {
+      coverLetterFileName: fileName,
+      coverLetterStoragePath: storagePath,
+      coverLetter: extractedText || profile.coverLetter,
     },
   });
 

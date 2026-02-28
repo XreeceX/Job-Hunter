@@ -15,7 +15,6 @@ const updateSchema = z.object({
   experienceSummary: z.string().nullable().optional(),
   skills: z.string().nullable().optional(),
   resumeText: z.string().nullable().optional(),
-  coverLetter: z.string().nullable().optional(),
   customQa: z
     .array(z.object({ question: z.string(), answer: z.string() }))
     .nullable()
@@ -34,7 +33,7 @@ export async function GET() {
       skills: profile.skills,
       resumeText: profile.resumeText ? '[stored]' : null,
       resumeFileName: profile.resumeFileName,
-      coverLetter: profile.coverLetter,
+      coverLetterFileName: profile.coverLetterFileName,
       customQa: profile.customQa,
       preferences: profile.preferences,
     });
@@ -62,7 +61,7 @@ export async function PUT(request: NextRequest) {
       experienceSummary: profile.experienceSummary,
       skills: profile.skills,
       resumeFileName: profile.resumeFileName,
-      coverLetter: profile.coverLetter,
+      coverLetterFileName: profile.coverLetterFileName,
       customQa: profile.customQa,
       preferences: profile.preferences,
     });

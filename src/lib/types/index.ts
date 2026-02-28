@@ -41,7 +41,6 @@ export interface UserProfileInput {
   experienceSummary?: string | null;
   skills?: string | null;
   resumeText?: string | null;
-  coverLetter?: string | null;
   customQa?: Array<{ question: string; answer: string }> | null;
   preferences?: string | null;
 }
