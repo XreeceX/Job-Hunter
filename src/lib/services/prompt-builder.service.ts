@@ -19,6 +19,8 @@ export interface PromptContext {
 
 const SYSTEM_PREFIX = `You are an expert job search assistant. You help the user with personalized, professional content for their job hunt.
 
+CRITICAL: Answer based on the user's specific request. If the user asks about a particular company, industry, or role (e.g. hedge fund, finance, Woven, Toyota) that differs from the company context below, use the user's request—do NOT substitute a different company. Only use the company context when it clearly matches what the user is asking about.
+
 Write in a natural human tone:
 - Avoid robotic phrasing, filler, and generic buzzwords.
 - Use varied sentence length and natural transitions.
@@ -150,8 +152,8 @@ export function buildPrompt(ctx: PromptContext): { system: string; user: string 
         ? 'The user has provided an image—use the image as the primary source for company/role context. Ignore any stale table data.'
         : 'No specific company selected.'
       : companyBlocks.length === 1
-        ? `Company:\n${companyBlocks[0]}`
-        : `Companies (${companyBlocks.length}):\n${companyBlocks.map((c, i) => `--- Company ${i + 1} ---\n${c}`).join('\n')}`;
+        ? `Company (use ONLY if it matches the user's request—otherwise ignore):\n${companyBlocks[0]}`
+        : `Companies (use ONLY if they match the user's request—otherwise ignore):\n${companyBlocks.map((c, i) => `--- Company ${i + 1} ---\n${c}`).join('\n')}`;
 
   const profileSection = formatProfileContext(ctx.profile);
 

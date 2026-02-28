@@ -249,7 +249,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
         </Button>
         {selectedCompanyIds.length > 0 && (
           <p className="text-xs text-[var(--muted)]">
-            Using {selectedCompanyIds.length} selected company/companies as context.
+            Using {selectedCompanyIds.length} selected company/companies. Clear selection below if you’re asking about a different company or industry.
           </p>
         )}
         {!selectedUploadId && (
