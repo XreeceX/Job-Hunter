@@ -168,6 +168,53 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
                 Set <code className="rounded bg-[var(--border)] px-1">PORTFOLIO_URL</code> in Vercel → Project → Settings → Environment Variables. AI fetches it for extra context when generating.
               </p>
             </div>
+            {Array.isArray(form.customQa) && form.customQa.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Saved Q&A (from follow-up questions)</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="text-xs text-[var(--muted)]">
+                    These answers are sent to the AI with every request. Old company names (e.g. Quantinuum) can stick here.
+                  </p>
+                  <div className="space-y-1 text-xs">
+                    {form.customQa.map((qa, i) => (
+                      <div key={i} className="rounded border border-[var(--border)] p-2">
+                        <p className="font-medium text-[var(--muted)]">Q: {qa.question}</p>
+                        <p>A: {qa.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={async () => {
+                      setForm((f) => ({ ...f, customQa: [] }));
+                      setSaving(true);
+                      setMessage(null);
+                      try {
+                        const res = await fetch('/api/profile', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ ...form, customQa: [] }),
+                        });
+                        if (!res.ok) throw new Error('Failed to clear');
+                        const data = await res.json();
+                        setProfile(data);
+                        setForm((f) => ({ ...f, customQa: [] }));
+                        setMessage('Saved Q&A cleared.');
+                      } catch {
+                        setMessage('Failed to clear.');
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                  >
+                    Clear saved Q&A
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Resume (PDF or text)</CardTitle>
