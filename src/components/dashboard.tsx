@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -62,6 +62,7 @@ export function Dashboard() {
   >([]);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
   const [profileOpen, setProfileOpen] = useState(false);
+  const uploadsRetryCountRef = useRef(0);
 
   /** Fire a light request in the background to warm serverless; don't block uploads. */
   const warmUpBackground = useCallback(() => {
@@ -70,11 +71,11 @@ export function Dashboard() {
     fetch('/api/health', { signal: c.signal }).catch(() => {}).finally(() => clearTimeout(t));
   }, []);
 
-  const fetchUploads = useCallback(async () => {
+  const fetchUploads = useCallback(async (isRetry = false) => {
     setUploadsError(null);
     setUploadsLoading(true);
     try {
-      warmUpBackground(); // Fire-and-forget; don't block
+      if (!isRetry) warmUpBackground(); // Fire-and-forget; don't block
       const res = await fetch('/api/uploads');
       
       if (!res.ok) {
@@ -95,9 +96,14 @@ export function Dashboard() {
             // If we can't parse error, just use generic message
           }
           setUploadsError(errorMessage);
+          setUploads([]);
+          setUploadsLoading(false);
+          // Auto-retry once for 5xx (e.g. cold start)
+          if (res.status >= 500 && uploadsRetryCountRef.current < 1) {
+            uploadsRetryCountRef.current += 1;
+            setTimeout(() => fetchUploads(true), 2000);
+          }
         }
-        setUploads([]);
-        setUploadsLoading(false);
         return;
       }
 
@@ -115,6 +121,7 @@ export function Dashboard() {
 
       // Success - clear any previous errors and set uploads
       setUploadsError(null);
+      uploadsRetryCountRef.current = 0;
       const list = data.uploads ?? [];
       setUploads(list);
     } catch (e) {
@@ -261,9 +268,14 @@ export function Dashboard() {
               {uploadsError && uploads.length === 0 && (
                 <div className="space-y-2">
                   <p className="text-sm text-red-400" role="alert">{uploadsError}</p>
-                  <Button variant="secondary" size="sm" onClick={() => fetchUploads()}>
-                    Retry
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => fetchUploads()}>
+                      Retry
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setUploadsError(null)}>
+                      Dismiss
+                    </Button>
+                  </div>
                 </div>
               )}
               {!uploadsLoading && !uploadsError && uploads.length > 0 && (
