@@ -118,9 +118,8 @@ export function Dashboard() {
       const list = data.uploads ?? [];
       setUploads(list);
     } catch (e) {
-      // Only show error for network errors or other exceptions
       console.error('Error fetching uploads:', e);
-      // Don't set error for transient issues - just log it
+      setUploadsError(e instanceof Error ? e.message : 'Failed to load uploads');
       setUploads([]);
     } finally {
       setUploadsLoading(false);
