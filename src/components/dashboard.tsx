@@ -8,7 +8,7 @@ import { UploadZone } from '@/components/upload-zone';
 import { AllCompaniesTable, type CompanyRowWithUpload } from '@/components/all-companies-table';
 import { PromptPanel } from '@/components/prompt-panel';
 import { ProfileSheet } from '@/components/profile-sheet';
-import { FileSpreadsheet, User } from 'lucide-react';
+import { FileSpreadsheet, User, Rows3, Sparkles } from 'lucide-react';
 
 export interface UploadSummary {
   id: string;
@@ -235,30 +235,58 @@ export function Dashboard() {
   }, [fetchAllCompanies, fetchUploads]);
 
   return (
-    <div className="mx-auto max-w-7xl p-4 md:p-6">
-      <header className="mb-8 flex items-center justify-between border-b border-[var(--border)] pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Job Hunter</h1>
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-10">
+      <header className="mb-10 flex flex-col gap-6 border-b border-[var(--border-subtle)] pb-8 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--card-elevated)]/80 px-3 py-1 text-xs font-medium text-[var(--muted)] shadow-glow-sm backdrop-blur-sm">
+            <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden />
+            AI-assisted outreach &amp; applications
+          </div>
+          <div>
+            <h1 className="text-balance text-3xl font-semibold tracking-tight text-[var(--foreground)] md:text-4xl">
+              Job Hunter
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--foreground-muted)]">
+              Import roles, map columns once, and generate tailored copy with your resume and profile as context.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--card-elevated)]/60 px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground-muted)]">
+              <Rows3 className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden />
+              {companiesLoading ? '…' : `${totalRows.toLocaleString()} rows`}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--card-elevated)]/60 px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground-muted)]">
+              <FileSpreadsheet className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden />
+              {uploadsLoading ? '…' : `${totalUploads} ${totalUploads === 1 ? 'upload' : 'uploads'}`}
+            </span>
+          </div>
+        </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => setProfileOpen(true)}
-          className="gap-2"
+          className="shrink-0 gap-2 self-start md:self-auto"
         >
           <User className="h-4 w-4" />
-          Profile &amp; Resume
+          Profile &amp; resume
         </Button>
       </header>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Top row: Spreadsheet (1/4) + AI Assistant (3/4) */}
         <div className="grid gap-6 lg:grid-cols-12">
           <div className="lg:col-span-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileSpreadsheet className="h-4 w-4" />
-                Spreadsheet
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-dim)] text-[var(--accent)]">
+                  <FileSpreadsheet className="h-4 w-4" aria-hidden />
+                </span>
+                Data import
               </CardTitle>
+              <p className="text-xs leading-relaxed text-[var(--muted)]">
+                CSV / Excel with automatic column detection
+              </p>
             </CardHeader>
             <CardContent className="space-y-3">
               <UploadZone onDone={onUploadDone} />
@@ -267,7 +295,7 @@ export function Dashboard() {
               )}
               {uploadsError && uploads.length === 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm text-red-400" role="alert">{uploadsError}</p>
+                  <p className="text-sm text-[var(--danger)]" role="alert">{uploadsError}</p>
                   <div className="flex gap-2">
                     <Button variant="secondary" size="sm" onClick={() => fetchUploads()}>
                       Retry
@@ -320,7 +348,7 @@ export function Dashboard() {
           {companiesError && (
             <Card>
               <CardContent className="py-4">
-                <p className="text-sm text-red-400" role="alert">{companiesError}</p>
+                <p className="text-sm text-[var(--danger)]" role="alert">{companiesError}</p>
                 <Button variant="secondary" size="sm" onClick={fetchAllCompanies} className="mt-2">
                   Retry
                 </Button>

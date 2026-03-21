@@ -10,8 +10,12 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['ui-monospace', 'monospace'],
+        sans: ['var(--font-sans)', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+      },
+      boxShadow: {
+        glow: '0 0 0 1px var(--border-subtle), 0 8px 32px -8px rgba(0,0,0,0.55)',
+        'glow-sm': '0 0 0 1px var(--border-subtle), 0 4px 16px -4px rgba(0,0,0,0.45)',
       },
     },
   },

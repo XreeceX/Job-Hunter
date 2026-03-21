@@ -81,7 +81,7 @@ export function UploadZone({ onDone }: UploadZoneProps) {
 
   return (
     <div
-      className="rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--background)] p-6 text-center transition-colors hover:border-[var(--muted)]"
+      className="group relative overflow-hidden rounded-xl border border-dashed border-[var(--border)] bg-[var(--card-elevated)]/40 p-6 text-center transition-all duration-200 hover:border-[var(--accent)]/35 hover:bg-[var(--accent-dim)]/30 hover:shadow-glow-sm"
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
     >
@@ -94,15 +94,17 @@ export function UploadZone({ onDone }: UploadZoneProps) {
         disabled={uploading}
       />
       {uploading ? (
-        <div className="flex flex-col items-center gap-2 text-[var(--muted)]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span>Uploading and detecting columns…</span>
+        <div className="flex flex-col items-center gap-3 text-[var(--muted)]">
+          <Loader2 className="h-9 w-9 animate-spin text-[var(--accent)]" />
+          <span className="text-sm">Uploading and detecting columns…</span>
         </div>
       ) : (
         <>
-          <Upload className="mx-auto h-8 w-8 text-[var(--muted)]" />
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Drag a file here or click to upload
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-[var(--accent)] transition-transform duration-200 group-hover:scale-105">
+            <Upload className="h-6 w-6" aria-hidden />
+          </div>
+          <p className="mt-3 text-sm font-medium text-[var(--foreground)]">
+            Drop a spreadsheet or browse
           </p>
           <p className="mt-1 text-xs text-[var(--muted)]">
             .xlsx, .xls, .csv — columns are auto-detected
@@ -111,7 +113,7 @@ export function UploadZone({ onDone }: UploadZoneProps) {
             type="button"
             variant="secondary"
             size="sm"
-            className="mt-3"
+            className="mt-4"
             onClick={() => inputRef.current?.click()}
           >
             Choose file
@@ -119,13 +121,13 @@ export function UploadZone({ onDone }: UploadZoneProps) {
         </>
       )}
       {success && (
-        <p className="mt-3 flex items-center justify-center gap-2 text-sm text-[var(--accent)]" role="status">
-          <CheckCircle className="h-4 w-4 shrink-0" />
+        <p className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-[var(--accent)]/25 bg-[var(--accent-dim)]/40 px-3 py-2 text-sm text-[var(--accent)]" role="status">
+          <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
           {success}
         </p>
       )}
       {error && (
-        <p className="mt-3 text-sm text-red-400" role="alert">
+        <p className="mt-4 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-muted)] px-3 py-2 text-sm text-[var(--danger)]" role="alert">
           {error}
         </p>
       )}

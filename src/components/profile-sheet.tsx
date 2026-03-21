@@ -115,48 +115,57 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-lg font-semibold">Profile &amp; Resume</Dialog.Title>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/65 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--card)]/95 p-6 shadow-glow backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <Dialog.Title className="text-lg font-semibold tracking-tight">Profile &amp; resume</Dialog.Title>
+              <Dialog.Description className="mt-1 text-sm text-[var(--muted)]">
+                Stored locally for this deployment. Used to personalize AI output.
+              </Dialog.Description>
+            </div>
             <Dialog.Close asChild>
-              <button className="rounded p-1 hover:bg-[var(--border)]" aria-label="Close">
+              <button
+                type="button"
+                className="rounded-lg border border-transparent p-2 text-[var(--muted)] transition-colors hover:border-[var(--border)] hover:bg-[var(--card-elevated)] hover:text-[var(--foreground)]"
+                aria-label="Close"
+              >
                 <X className="h-5 w-5" />
               </button>
             </Dialog.Close>
           </div>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto">
             <div className="grid gap-2">
-              <Label>Name</Label>
+              <Label className="text-[var(--foreground-muted)]">Name</Label>
               <input
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+                className="input-surface"
                 value={form.name ?? ''}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="Your name"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Target role</Label>
+              <Label className="text-[var(--foreground-muted)]">Target role</Label>
               <input
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+                className="input-surface"
                 value={form.targetRole ?? ''}
                 onChange={(e) => setForm((f) => ({ ...f, targetRole: e.target.value }))}
                 placeholder="e.g. Software Engineer"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Experience summary</Label>
+              <Label className="text-[var(--foreground-muted)]">Experience summary</Label>
               <textarea
-                className="min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+                className="input-surface min-h-[88px] resize-y"
                 value={form.experienceSummary ?? ''}
                 onChange={(e) => setForm((f) => ({ ...f, experienceSummary: e.target.value }))}
                 placeholder="Brief experience summary for AI context"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Skills</Label>
+              <Label className="text-[var(--foreground-muted)]">Skills</Label>
               <input
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+                className="input-surface"
                 value={form.skills ?? ''}
                 onChange={(e) => setForm((f) => ({ ...f, skills: e.target.value }))}
                 placeholder="Comma-separated or list"
@@ -263,11 +272,11 @@ export function ProfileSheet({ open, onOpenChange }: ProfileSheetProps) {
               <p className="text-sm text-[var(--muted)]">{message}</p>
             )}
           </div>
-          <div className="mt-6 flex justify-end gap-2">
+          <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-[var(--border-subtle)] pt-5">
             <Dialog.Close asChild>
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="outline">Cancel</Button>
             </Dialog.Close>
-            <Button onClick={saveProfile} disabled={saving}>
+            <Button onClick={saveProfile} disabled={saving} className="min-w-[7rem] gap-2">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save profile'}
             </Button>
           </div>

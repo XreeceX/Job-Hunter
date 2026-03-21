@@ -216,43 +216,59 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Sparkles className="h-4 w-4" />
-          AI Assistant
+      <CardHeader className="space-y-1">
+        <CardTitle className="flex items-center gap-2 text-base font-semibold">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-dim)] text-[var(--accent)]">
+            <Sparkles className="h-4 w-4" aria-hidden />
+          </span>
+          AI assistant
         </CardTitle>
+        <p className="text-xs text-[var(--muted)]">
+          Uses selected rows + your profile. Paste screenshots for extra context.
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
         <div className="space-y-2">
-          <Label>Intent (optional)</Label>
-          <select
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
-            value={intentHint}
-            onChange={(e) => setIntentHint(e.target.value)}
-          >
-            {INTENT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <Label className="text-[var(--foreground-muted)]">Intent (optional)</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {INTENT_OPTIONS.map((o) => {
+              const active = intentHint === o.value;
+              return (
+                <button
+                  key={o.value || 'custom'}
+                  type="button"
+                  onClick={() => setIntentHint(o.value)}
+                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    active
+                      ? 'border-[var(--accent)]/50 bg-[var(--accent-dim)] text-[var(--accent)]'
+                      : 'border-transparent bg-[var(--card-elevated)] text-[var(--muted)] hover:border-[var(--border)] hover:text-[var(--foreground)]'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="space-y-2">
-          <Label>Your request</Label>
+          <Label className="text-[var(--foreground-muted)]">Your request</Label>
           <textarea
-            className="min-h-[100px] w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-            placeholder="Type your prompt, then paste text/images with Ctrl+V."
+            className="input-surface min-h-[120px] resize-y"
+            placeholder="Describe what you need — paste job descriptions, bullets, or images with Ctrl+V."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onPaste={handlePromptPaste}
             disabled={loading}
           />
-          <p className="text-xs text-[var(--muted)]">Supports Ctrl+V for text, screenshots, and copied images.</p>
+          <p className="text-xs text-[var(--muted)]">Ctrl+V: text, screenshots, and copied images (up to 5).</p>
           {attachments.length > 0 && (
             <div className="grid gap-2 sm:grid-cols-2">
               {attachments.map((item) => (
-                <div key={item.id} className="rounded-lg border border-[var(--border)] p-2">
-                  <img src={item.dataUrl} alt={item.name} className="max-h-36 w-full rounded object-contain" />
+                <div
+                  key={item.id}
+                  className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card-elevated)]/50 p-2 shadow-inner shadow-black/20"
+                >
+                  <img src={item.dataUrl} alt={item.name} className="max-h-36 w-full rounded-lg object-contain" />
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <p className="truncate text-xs text-[var(--muted)]">{item.name}</p>
                     <Button variant="ghost" size="sm" onClick={() => removeAttachment(item.id)}>
@@ -267,7 +283,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
         <Button
           onClick={generate}
           disabled={loading || (!prompt.trim() && attachments.length === 0)}
-          className="w-full gap-2"
+          className="w-full gap-2 shadow-glow-sm"
         >
           {loading ? (
             <>
@@ -282,8 +298,9 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
           )}
         </Button>
         {selectedCompanyIds.length > 0 && (
-          <p className="text-xs text-[var(--muted)]">
-            Using {selectedCompanyIds.length} selected company/companies. Clear selection below if you’re asking about a different company or industry.
+          <p className="rounded-lg border border-[var(--border-subtle)] bg-[var(--card-elevated)]/50 px-3 py-2 text-xs text-[var(--foreground-muted)]">
+            Context: <span className="font-medium text-[var(--foreground)]">{selectedCompanyIds.length}</span>{' '}
+            row{selectedCompanyIds.length === 1 ? '' : 's'} selected. Clear the table selection if the question is not about those companies.
           </p>
         )}
         {!selectedUploadId && (
@@ -292,17 +309,17 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
           </p>
         )}
         {selectedUploadId && selectedCompanyIds.length === 0 && (
-          <p className="text-xs text-amber-500/90">
-            Select one or more companies in the table above, then Generate.
+          <p className="rounded-lg border border-[var(--warning)]/25 bg-[var(--warning)]/10 px-3 py-2 text-xs text-[var(--warning)]">
+            Select one or more companies in the table below, then generate.
           </p>
         )}
         {error && (
-          <p className="text-sm text-red-400" role="alert">
+          <p className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-muted)] px-3 py-2 text-sm text-[var(--danger)]" role="alert">
             {error}
           </p>
         )}
         {followUpQuestion && (
-          <div className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+          <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--card-elevated)]/60 p-4 shadow-inner shadow-black/20">
             {sameCompanyCheck ? (
               <>
                 <Label>Is this for the same company/role as before?</Label>
@@ -325,7 +342,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
                 <Label>AI needs one more detail</Label>
                 <p className="text-sm text-[var(--muted)]">{followUpQuestion}</p>
                 <textarea
-                  className="min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  className="input-surface min-h-[88px] resize-y"
                   placeholder="Your answer (this will be saved for future applications)"
                   value={followUpAnswer}
                   onChange={(e) => setFollowUpAnswer(e.target.value)}
@@ -344,14 +361,14 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
         )}
         {output && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Output</Label>
-              <Button variant="ghost" size="sm" onClick={copyOutput} className="gap-1">
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-[var(--foreground-muted)]">Output</Label>
+              <Button variant="outline" size="sm" onClick={copyOutput} className="gap-1.5">
+                {copied ? <Check className="h-4 w-4 text-[var(--accent)]" /> : <Copy className="h-4 w-4" />}
                 {copied ? 'Copied' : 'Copy'}
               </Button>
             </div>
-            <div className="min-h-[120px] rounded-lg border border-[var(--border)] bg-[var(--background)] p-4 text-sm whitespace-pre-wrap">
+            <div className="min-h-[140px] rounded-xl border border-[var(--border-subtle)] bg-[var(--background)]/80 p-4 font-mono text-sm leading-relaxed text-[var(--foreground-muted)] shadow-inner shadow-black/30 whitespace-pre-wrap [font-variant-ligatures:none]">
               {output}
             </div>
           </div>

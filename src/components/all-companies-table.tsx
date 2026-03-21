@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Building2, Trash2 } from 'lucide-react';
 
 export interface CompanyRowWithUpload {
   id: string;
@@ -137,26 +137,37 @@ export function AllCompaniesTable({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base">
-          All Companies ({totalRows} rows from {totalUploads} {totalUploads === 1 ? 'upload' : 'uploads'})
-        </CardTitle>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="sm" onClick={selectAllVisible}>
-            {allVisibleSelected ? 'Deselect all' : 'Select all'}
+      <CardHeader className="flex flex-col gap-4 space-y-0 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-dim)] text-[var(--accent)]">
+              <Building2 className="h-4 w-4" aria-hidden />
+            </span>
+            Pipeline
+          </CardTitle>
+          <p className="text-xs text-[var(--muted)]">
+            <span className="font-medium tabular-nums text-[var(--foreground-muted)]">{totalRows.toLocaleString()}</span>{' '}
+            rows ·{' '}
+            <span className="font-medium tabular-nums text-[var(--foreground-muted)]">{totalUploads}</span>{' '}
+            {totalUploads === 1 ? 'upload' : 'uploads'}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5 sm:justify-end">
+          <Button variant="outline" size="sm" onClick={selectAllVisible}>
+            {allVisibleSelected ? 'Deselect page' : 'Select page'}
           </Button>
           <Button variant="ghost" size="sm" onClick={onClearSelection}>
             Clear
           </Button>
           {selectedRowIds.size > 0 && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={handleDeleteSelected}
               disabled={deleting}
-              className="text-red-400 hover:text-red-300"
+              className="border-[var(--danger)]/35 text-[var(--danger)] hover:bg-[var(--danger-muted)]"
             >
-              <Trash2 className="h-4 w-4 mr-1" />
+              <Trash2 className="h-4 w-4 mr-1" aria-hidden />
               Delete ({selectedRowIds.size})
             </Button>
           )}
@@ -164,82 +175,100 @@ export function AllCompaniesTable({
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
-          <p className="text-sm text-[var(--muted)] py-4">
-            No companies found. Upload a spreadsheet to get started.
-          </p>
+          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card-elevated)]/40 py-10 text-center">
+            <p className="text-sm text-[var(--muted)]">
+              No companies yet. Upload a spreadsheet to populate this table.
+            </p>
+          </div>
         ) : (
           <>
-            <div className="max-h-[500px] overflow-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-[var(--card)] border-b border-[var(--border)] z-10">
-                  <tr>
-                    <th className="w-8 p-2">
-                      <input
-                        type="checkbox"
-                        checked={allVisibleSelected}
-                        onChange={selectAllVisible}
-                        className="rounded border-[var(--border)]"
-                      />
-                    </th>
-                    {displayColumns.map((col) => (
-                      <th key={col} className="p-2 font-medium text-[var(--muted)] whitespace-nowrap">
-                        {col === 'upload_file' ? 'Source File' : col.replace(/_/g, ' ')}
+            <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)]">
+              <div className="max-h-[min(520px,70vh)] overflow-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--card)]/90 backdrop-blur-md">
+                    <tr>
+                      <th className="w-10 p-3">
+                        <input
+                          type="checkbox"
+                          checked={allVisibleSelected}
+                          onChange={selectAllVisible}
+                          className="h-3.5 w-3.5 rounded border-[var(--border)] bg-[var(--card-elevated)] text-[var(--accent)] focus:ring-[var(--ring)]"
+                          aria-label={allVisibleSelected ? 'Deselect all visible rows' : 'Select all visible rows'}
+                        />
                       </th>
-                    ))}
-                    <th className="w-12 p-2"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const data = (row.data || {}) as Record<string, unknown>;
-                    return (
-                      <tr
-                        key={row.id}
-                        className="border-b border-[var(--border)]/50 hover:bg-[var(--border)]/20"
-                      >
-                        <td className="p-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedRowIds.has(row.id)}
-                            onChange={() => onToggleRow(row.id)}
-                            className="rounded border-[var(--border)]"
-                          />
-                        </td>
-                        <td className="p-2 text-xs text-[var(--muted)] max-w-[120px] truncate" title={row.uploadFileName}>
-                          {row.uploadFileName}
-                        </td>
-                        {allColumns.map((col) => {
-                          const displayValue = getValueForHeader(row, col);
-                          return (
-                            <td
-                              key={col}
-                              className="max-w-[200px] p-2 truncate"
-                              title={displayValue}
-                            >
-                              {displayValue}
-                            </td>
-                          );
-                        })}
-                        <td className="p-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteRow(row.id)}
-                            disabled={deletingId === row.id || deleting}
-                            className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                            title="Delete row"
+                      {displayColumns.map((col) => (
+                        <th
+                          key={col}
+                          className="p-3 font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] whitespace-nowrap"
+                        >
+                          {col === 'upload_file' ? 'Source' : col.replace(/_/g, ' ')}
+                        </th>
+                      ))}
+                      <th className="w-12 p-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
+                    {rows.map((row, idx) => {
+                      const selected = selectedRowIds.has(row.id);
+                      return (
+                        <tr
+                          key={row.id}
+                          className={`transition-colors ${
+                            selected
+                              ? 'bg-[var(--accent-dim)]/25 hover:bg-[var(--accent-dim)]/35'
+                              : idx % 2 === 0
+                                ? 'bg-transparent hover:bg-[var(--card-elevated)]/50'
+                                : 'bg-[var(--card-elevated)]/20 hover:bg-[var(--card-elevated)]/55'
+                          }`}
+                        >
+                          <td className="p-3 align-middle">
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => onToggleRow(row.id)}
+                              className="h-3.5 w-3.5 rounded border-[var(--border)] bg-[var(--background)] text-[var(--accent)] focus:ring-[var(--ring)]"
+                              aria-label="Select row"
+                            />
+                          </td>
+                          <td
+                            className="max-w-[140px] p-3 align-middle font-mono text-xs text-[var(--foreground-muted)]"
+                            title={row.uploadFileName}
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            <span className="block truncate">{row.uploadFileName}</span>
+                          </td>
+                          {allColumns.map((col) => {
+                            const displayValue = getValueForHeader(row, col);
+                            return (
+                              <td
+                                key={col}
+                                className="max-w-[220px] p-3 align-middle text-[var(--foreground-muted)]"
+                                title={displayValue}
+                              >
+                                <span className="line-clamp-2">{displayValue}</span>
+                              </td>
+                            );
+                          })}
+                          <td className="p-3 align-middle">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteRow(row.id)}
+                              disabled={deletingId === row.id || deleting}
+                              className="h-8 w-8 p-0 text-[var(--danger)] hover:bg-[var(--danger-muted)] hover:text-[var(--danger)]"
+                              title="Delete row"
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <p className="mt-3 text-xs text-[var(--muted)]">
-              Select one or more companies above, then enter a request in the AI Assistant panel to generate personalized content.
+            <p className="mt-4 text-xs leading-relaxed text-[var(--muted)]">
+              Select rows for AI context, then use the assistant panel to generate emails, letters, or research notes.
             </p>
           </>
         )}
