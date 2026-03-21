@@ -4,6 +4,8 @@ import { useState, type ClipboardEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils/cn';
+import { interactiveCardClass } from '@/lib/ui';
 import { Sparkles, Loader2, Copy, Check } from 'lucide-react';
 
 interface PromptPanelProps {
@@ -215,7 +217,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
   };
 
   return (
-    <Card>
+    <Card className={cn(interactiveCardClass)}>
       <CardHeader className="space-y-1">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-dim)] text-[var(--accent)]">
@@ -238,9 +240,9 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
                   key={o.value || 'custom'}
                   type="button"
                   onClick={() => setIntentHint(o.value)}
-                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-[color,background-color,border-color,transform] duration-200 active:scale-[0.97] motion-reduce:active:scale-100 ${
                     active
-                      ? 'border-[var(--accent)]/50 bg-[var(--accent-dim)] text-[var(--accent)]'
+                      ? 'border-[var(--accent)]/50 bg-[var(--accent-dim)] text-[var(--accent)] shadow-[0_0_0_1px_rgba(134,239,172,0.12)]'
                       : 'border-transparent bg-[var(--card-elevated)] text-[var(--muted)] hover:border-[var(--border)] hover:text-[var(--foreground)]'
                   }`}
                 >

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
+import { interactiveCardClass } from '@/lib/ui';
 
 export interface CompanyRowWithUpload {
   id: string;
@@ -136,7 +138,7 @@ export function AllCompaniesTable({
   const allVisibleSelected = rows.length > 0 && rows.every((r) => selectedRowIds.has(r.id));
 
   return (
-    <Card>
+    <Card className={cn(interactiveCardClass)}>
       <CardHeader className="flex flex-col gap-4 space-y-0 pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2 text-base font-semibold">

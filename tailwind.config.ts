@@ -17,6 +17,15 @@ const config: Config = {
         glow: '0 0 0 1px var(--border-subtle), 0 8px 32px -8px rgba(0,0,0,0.55)',
         'glow-sm': '0 0 0 1px var(--border-subtle), 0 4px 16px -4px rgba(0,0,0,0.45)',
       },
+      keyframes: {
+        'fade-in-up': {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'fade-in-up': 'fade-in-up 0.55s ease-out both',
+      },
     },
   },
   plugins: [require('tailwindcss-animate')],

@@ -8,6 +8,10 @@ import { UploadZone } from '@/components/upload-zone';
 import { AllCompaniesTable, type CompanyRowWithUpload } from '@/components/all-companies-table';
 import { PromptPanel } from '@/components/prompt-panel';
 import { ProfileSheet } from '@/components/profile-sheet';
+import { AnimatedNumber } from '@/components/animated-number';
+import { CompaniesTableSkeleton } from '@/components/companies-table-skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
+import { interactiveCardClass } from '@/lib/ui';
 import { FileSpreadsheet, User, Rows3, Sparkles } from 'lucide-react';
 
 export interface UploadSummary {
@@ -236,10 +240,10 @@ export function Dashboard() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-10">
-      <header className="mb-10 flex flex-col gap-6 border-b border-[var(--border-subtle)] pb-8 md:flex-row md:items-end md:justify-between">
+      <header className="animate-fade-in-up mb-10 flex flex-col gap-6 border-b border-[var(--border-subtle)] pb-8 motion-reduce:animate-none md:flex-row md:items-end md:justify-between">
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--card-elevated)]/80 px-3 py-1 text-xs font-medium text-[var(--muted)] shadow-glow-sm backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden />
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--card-elevated)]/80 px-3 py-1 text-xs font-medium text-[var(--muted)] shadow-glow-sm backdrop-blur-sm transition-colors hover:border-[var(--accent)]/25">
+            <Sparkles className="h-3.5 w-3.5 animate-pulse text-[var(--accent)] motion-reduce:animate-none" aria-hidden />
             AI-assisted outreach &amp; applications
           </div>
           <div>
@@ -251,13 +255,26 @@ export function Dashboard() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--card-elevated)]/60 px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground-muted)]">
-              <Rows3 className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden />
-              {companiesLoading ? '…' : `${totalRows.toLocaleString()} rows`}
+            <span className="inline-flex min-h-[1.75rem] items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--card-elevated)]/60 px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground-muted)] transition-colors duration-300 hover:border-[var(--accent)]/20">
+              <Rows3 className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" aria-hidden />
+              {companiesLoading ? (
+                <Skeleton className="inline-block h-3.5 w-14" />
+              ) : (
+                <>
+                  <AnimatedNumber value={totalRows} /> <span className="text-[var(--muted)]">rows</span>
+                </>
+              )}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--card-elevated)]/60 px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground-muted)]">
-              <FileSpreadsheet className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden />
-              {uploadsLoading ? '…' : `${totalUploads} ${totalUploads === 1 ? 'upload' : 'uploads'}`}
+            <span className="inline-flex min-h-[1.75rem] items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--card-elevated)]/60 px-2.5 py-1 text-xs font-medium tabular-nums text-[var(--foreground-muted)] transition-colors duration-300 hover:border-[var(--accent)]/20">
+              <FileSpreadsheet className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" aria-hidden />
+              {uploadsLoading ? (
+                <Skeleton className="inline-block h-3.5 w-20" />
+              ) : (
+                <>
+                  <AnimatedNumber value={totalUploads} />{' '}
+                  <span className="text-[var(--muted)]">{totalUploads === 1 ? 'upload' : 'uploads'}</span>
+                </>
+              )}
             </span>
           </div>
         </div>
@@ -265,18 +282,18 @@ export function Dashboard() {
           variant="outline"
           size="sm"
           onClick={() => setProfileOpen(true)}
-          className="shrink-0 gap-2 self-start md:self-auto"
+          className="shrink-0 gap-2 self-start transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:hover:scale-100 md:self-auto"
         >
           <User className="h-4 w-4" />
           Profile &amp; resume
         </Button>
       </header>
 
-      <div className="space-y-8">
+      <div className="stagger-children space-y-8">
         {/* Top row: Spreadsheet (1/4) + AI Assistant (3/4) */}
         <div className="grid gap-6 lg:grid-cols-12">
           <div className="lg:col-span-3">
-          <Card>
+          <Card className={interactiveCardClass}>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-dim)] text-[var(--accent)]">
@@ -291,7 +308,16 @@ export function Dashboard() {
             <CardContent className="space-y-3">
               <UploadZone onDone={onUploadDone} />
               {uploadsLoading && (
-                <p className="text-sm text-[var(--muted)]">Loading spreadsheets…</p>
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-2 text-xs font-medium text-[var(--muted)]">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)]/40 motion-reduce:animate-none" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--accent)]" />
+                    </span>
+                    Syncing uploads…
+                  </div>
+                  <Skeleton className="h-9 w-full rounded-lg" />
+                </div>
               )}
               {uploadsError && uploads.length === 0 && (
                 <div className="space-y-2">
@@ -311,9 +337,12 @@ export function Dashboard() {
                   <Label className="text-[var(--muted)]">Recent uploads</Label>
                   <div className="text-xs text-[var(--muted)] space-y-1">
                     {uploads.map((u) => (
-                      <div key={u.id} className="flex justify-between">
+                      <div
+                        key={u.id}
+                        className="flex justify-between gap-2 rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--card-elevated)]/80"
+                      >
                         <span className="truncate">{u.fileName}</span>
-                        <span className="ml-2">{u.rowCount} rows</span>
+                        <span className="ml-2 shrink-0 tabular-nums text-[var(--foreground-muted)]">{u.rowCount} rows</span>
                       </div>
                     ))}
                   </div>
@@ -338,13 +367,7 @@ export function Dashboard() {
 
         {/* Bottom row: Companies table (full width) */}
         <div>
-          {companiesLoading && (
-            <Card>
-              <CardContent className="py-4">
-                <p className="text-sm text-[var(--muted)]">Loading companies…</p>
-              </CardContent>
-            </Card>
-          )}
+          {companiesLoading && <CompaniesTableSkeleton />}
           {companiesError && (
             <Card>
               <CardContent className="py-4">

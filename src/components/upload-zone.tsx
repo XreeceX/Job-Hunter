@@ -12,7 +12,11 @@ export function UploadZone({ onDone }: UploadZoneProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [dragDepth, setDragDepth] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isDragging = dragDepth > 0;
 
   useEffect(() => {
     if (!success) return;
@@ -64,8 +68,21 @@ export function UploadZone({ onDone }: UploadZoneProps) {
     }
   };
 
+  const onDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragDepth((d) => d + 1);
+  };
+
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragDepth((d) => Math.max(0, d - 1));
+  };
+
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setDragDepth(0);
     const file = e.dataTransfer.files[0];
     if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.csv') || file.name.endsWith('.xls'))) {
       handleFile(file);
@@ -81,9 +98,17 @@ export function UploadZone({ onDone }: UploadZoneProps) {
 
   return (
     <div
-      className="group relative overflow-hidden rounded-xl border border-dashed border-[var(--border)] bg-[var(--card-elevated)]/40 p-6 text-center transition-all duration-200 hover:border-[var(--accent)]/35 hover:bg-[var(--accent-dim)]/30 hover:shadow-glow-sm"
+      className={`group relative overflow-hidden rounded-xl border border-dashed p-6 text-center transition-all duration-300 ease-out ${
+        isDragging
+          ? 'scale-[1.01] border-[var(--accent)]/60 bg-[var(--accent-dim)]/50 shadow-[0_0_0_1px_rgba(134,239,172,0.12),0_12px_40px_-12px_rgba(0,0,0,0.55)] motion-reduce:scale-100'
+          : 'border-[var(--border)] bg-[var(--card-elevated)]/40 hover:border-[var(--accent)]/35 hover:bg-[var(--accent-dim)]/30 hover:shadow-glow-sm'
+      } ${isHovered && !isDragging ? 'ring-2 ring-[var(--ring)]/40' : ''}`}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <input
         ref={inputRef}
@@ -100,11 +125,15 @@ export function UploadZone({ onDone }: UploadZoneProps) {
         </div>
       ) : (
         <>
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-[var(--accent)] transition-transform duration-200 group-hover:scale-105">
+          <div
+            className={`mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-[var(--accent)] transition-transform duration-300 ${
+              isDragging ? 'scale-110 rotate-[-2deg]' : 'group-hover:scale-105'
+            } motion-reduce:transform-none`}
+          >
             <Upload className="h-6 w-6" aria-hidden />
           </div>
           <p className="mt-3 text-sm font-medium text-[var(--foreground)]">
-            Drop a spreadsheet or browse
+            {isDragging ? 'Release to import' : 'Drop a spreadsheet or browse'}
           </p>
           <p className="mt-1 text-xs text-[var(--muted)]">
             .xlsx, .xls, .csv — columns are auto-detected
