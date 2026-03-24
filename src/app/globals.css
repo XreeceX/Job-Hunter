@@ -2,66 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-  Theme aligned with portfolio-style surfaces (slate depth, hairline borders, sky/cyan accent).
-  Reference: https://reece-rodrigues.vercel.app/
-*/
+/* Colours: original green / mint scheme. Motion: ambient drift, stagger, shimmer (see below). */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --foreground-muted: #475569;
+  --background: #fafafa;
+  --foreground: #18181b;
+  --foreground-muted: #52525b;
   --card: #ffffff;
-  --card-elevated: #f1f5f9;
-  /* Hairline + soft lift — not flat zinc-200 blocks */
-  --border: rgba(15, 23, 42, 0.1);
-  --border-subtle: rgba(15, 23, 42, 0.05);
-  --border-hover: color-mix(in srgb, var(--accent) 45%, var(--border));
-  --border-active: color-mix(in srgb, var(--accent) 62%, var(--border));
-  --muted: #64748b;
-  --accent: #0ea5e9;
-  --accent-dim: rgba(14, 165, 233, 0.12);
-  --accent-hover: #0284c7;
+  --card-elevated: #f4f4f5;
+  --border: #e4e4e7;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-hover: color-mix(in srgb, var(--accent) 38%, var(--border));
+  --border-active: color-mix(in srgb, var(--accent) 55%, var(--border));
+  --muted: #71717a;
+  --accent: #16a34a;
+  --accent-dim: rgba(22, 163, 74, 0.12);
+  --accent-hover: #15803d;
   --accent-foreground: #ffffff;
-  --ring: rgba(14, 165, 233, 0.35);
+  --ring: rgba(22, 163, 74, 0.35);
   --danger: #dc2626;
   --danger-muted: rgba(220, 38, 38, 0.1);
   --warning: #d97706;
   --success: #16a34a;
   --success-dim: rgba(22, 163, 74, 0.12);
-  /* Card stack: edge + ambient shadow + top highlight (glass-adjacent) */
   --shadow-card:
     var(--card-inner-glow),
     0 0 0 1px var(--border-subtle),
-    0 12px 40px -16px rgba(15, 23, 42, 0.12);
+    0 12px 40px -16px rgba(15, 23, 42, 0.1);
   --shadow-card-sm:
     var(--card-inner-glow),
     0 0 0 1px var(--border-subtle),
-    0 6px 20px -10px rgba(15, 23, 42, 0.1);
-  --card-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
+    0 6px 20px -10px rgba(15, 23, 42, 0.08);
+  --card-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
   --shadow-glow: var(--shadow-card);
   --shadow-glow-sm: var(--shadow-card-sm);
-  --shadow-button: 0 1px 2px rgba(15, 23, 42, 0.08);
-  --input-inset: rgba(15, 23, 42, 0.04);
-  --bg-ambient-grid-line: rgba(15, 23, 42, 0.045);
-  --skeleton-shimmer-mid: rgba(15, 23, 42, 0.07);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --input-inset: rgba(0, 0, 0, 0.04);
+  --bg-ambient-grid-line: rgba(0, 0, 0, 0.055);
+  --skeleton-shimmer-mid: rgba(0, 0, 0, 0.08);
 }
 
 .dark {
-  --background: #030712;
-  --foreground: #f1f5f9;
-  --foreground-muted: #94a3b8;
-  --card: #0f172a;
-  --card-elevated: #1e293b;
-  --border: rgba(148, 163, 184, 0.14);
-  --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-hover: color-mix(in srgb, var(--accent) 38%, var(--border));
-  --border-active: color-mix(in srgb, var(--accent) 55%, var(--border));
-  --muted: #94a3b8;
-  --accent: #38bdf8;
-  --accent-dim: rgba(56, 189, 248, 0.14);
-  --accent-hover: #7dd3fc;
-  --accent-foreground: #0c1220;
-  --ring: rgba(56, 189, 248, 0.4);
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --foreground-muted: #a1a1aa;
+  --card: #121214;
+  --card-elevated: #18181b;
+  --border: #27272a;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-hover: color-mix(in srgb, var(--accent) 42%, var(--border));
+  --border-active: color-mix(in srgb, var(--accent) 58%, var(--border));
+  --muted: #71717a;
+  --accent: #86efac;
+  --accent-dim: rgba(134, 239, 172, 0.12);
+  --accent-hover: #bbf7d0;
+  --accent-foreground: #052e16;
+  --ring: rgba(134, 239, 172, 0.35);
   --danger: #f87171;
   --danger-muted: rgba(248, 113, 113, 0.12);
   --warning: #fbbf24;
@@ -75,13 +70,13 @@
     var(--card-inner-glow),
     0 0 0 1px var(--border-subtle),
     0 8px 24px -8px rgba(0, 0, 0, 0.45);
-  --card-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+  --card-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
   --shadow-glow: var(--shadow-card);
   --shadow-glow-sm: var(--shadow-card-sm);
   --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --input-inset: rgba(0, 0, 0, 0.25);
-  --bg-ambient-grid-line: rgba(148, 163, 184, 0.06);
-  --skeleton-shimmer-mid: rgba(255, 255, 255, 0.09);
+  --input-inset: rgba(0, 0, 0, 0.22);
+  --bg-ambient-grid-line: rgba(255, 255, 255, 0.035);
+  --skeleton-shimmer-mid: rgba(255, 255, 255, 0.1);
 }
 
 body {
@@ -106,8 +101,8 @@ body {
   max-width: 900px;
   background: radial-gradient(
     ellipse at center,
-    rgba(14, 165, 233, 0.12) 0%,
-    rgba(99, 102, 241, 0.06) 45%,
+    rgba(22, 163, 74, 0.14) 0%,
+    rgba(59, 130, 246, 0.05) 45%,
     transparent 70%
   );
   animation: aurora-float 22s ease-in-out infinite;
@@ -121,8 +116,8 @@ body {
   max-width: 720px;
   background: radial-gradient(
     ellipse at center,
-    rgba(139, 92, 246, 0.07) 0%,
-    rgba(14, 165, 233, 0.05) 40%,
+    rgba(99, 102, 241, 0.08) 0%,
+    rgba(22, 163, 74, 0.05) 40%,
     transparent 68%
   );
   animation: aurora-float-alt 28s ease-in-out infinite;
@@ -136,8 +131,8 @@ body {
   max-width: 900px;
   background: radial-gradient(
     ellipse at center,
-    rgba(56, 189, 248, 0.18) 0%,
-    rgba(99, 102, 241, 0.08) 45%,
+    rgba(134, 239, 172, 0.22) 0%,
+    rgba(59, 130, 246, 0.06) 45%,
     transparent 70%
   );
   animation: aurora-float 22s ease-in-out infinite;
@@ -151,8 +146,8 @@ body {
   max-width: 720px;
   background: radial-gradient(
     ellipse at center,
-    rgba(167, 139, 250, 0.1) 0%,
-    rgba(56, 189, 248, 0.07) 40%,
+    rgba(168, 85, 247, 0.12) 0%,
+    rgba(134, 239, 172, 0.08) 40%,
     transparent 68%
   );
   animation: aurora-float-alt 28s ease-in-out infinite;
@@ -350,12 +345,11 @@ body {
     cursor: not-allowed;
   }
 
-  /** Portfolio-style card stack (see Card) */
   .card-surface {
     box-shadow: var(--shadow-card);
   }
 
-  /** Surfaces: border + soft accent bloom on hover */
+  /** Surfaces: border + soft accent bloom on hover (motion-friendly) */
   .surface-border-dynamic {
     border-color: var(--border);
     transition:
