@@ -51,6 +51,11 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
   const [followUpAnswer, setFollowUpAnswer] = useState('');
   const [sameCompanyCheck, setSameCompanyCheck] = useState(false);
   const [attachments, setAttachments] = useState<PastedImageAttachment[]>([]);
+  const [webSearchInfo, setWebSearchInfo] = useState<{
+    used: boolean;
+    provider?: string;
+    queries?: string[];
+  } | null>(null);
 
   const removeAttachment = (id: string) => {
     setAttachments((prev) => prev.filter((item) => item.id !== id));
@@ -114,6 +119,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
     setFollowUpQuestion(null);
     setFollowUpAnswer('');
     setSameCompanyCheck(false);
+    setWebSearchInfo(null);
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -133,9 +139,11 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
       if (data.needsUserInput && data.question) {
         setFollowUpQuestion(data.question);
         setSameCompanyCheck(data.sameCompanyCheck === true);
+        if (data.webSearch) setWebSearchInfo(data.webSearch);
         return;
       }
       setOutput(data.text ?? '');
+      if (data.webSearch) setWebSearchInfo(data.webSearch);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed');
     } finally {
@@ -149,6 +157,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
     setOutput('');
     setFollowUpQuestion(null);
     setSameCompanyCheck(false);
+    setWebSearchInfo(null);
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -167,6 +176,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       setOutput(data.text ?? '');
+      if (data.webSearch) setWebSearchInfo(data.webSearch);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed');
     } finally {
@@ -182,6 +192,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
     setError(null);
     setLoading(true);
     setOutput('');
+    setWebSearchInfo(null);
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -200,6 +211,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       setOutput(data.text ?? '');
+      if (data.webSearch) setWebSearchInfo(data.webSearch);
       setFollowUpQuestion(null);
       setFollowUpAnswer('');
     } catch (e) {
@@ -226,7 +238,7 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
           AI assistant
         </CardTitle>
         <p className="text-xs text-[var(--muted)]">
-          Uses selected rows + your profile. Paste screenshots for extra context.
+          Uses selected rows + your profile. With search configured, the server pulls live web snippets for current company and topic facts. Paste screenshots for extra context.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -360,6 +372,16 @@ export function PromptPanel({ selectedCompanyIds, selectedUploadId }: PromptPane
               </>
             )}
           </div>
+        )}
+        {webSearchInfo?.used && (
+          <p className="rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-dim)]/40 px-3 py-2 text-xs text-[var(--foreground-muted)]">
+            Live web search included ({webSearchInfo.provider ?? 'provider'}).
+            {Array.isArray(webSearchInfo.queries) && webSearchInfo.queries.length > 0 ? (
+              <span className="block pt-1 font-mono text-[10px] text-[var(--muted)]">
+                {webSearchInfo.queries.join(' · ')}
+              </span>
+            ) : null}
+          </p>
         )}
         {output && (
           <div className="space-y-2">

@@ -15,6 +15,8 @@ export interface PromptContext {
   portfolioContent?: string | null;
   /** When true, user provided image(s)—prioritize image content over other context */
   hasAttachments?: boolean;
+  /** Live web search snippets (Tavily/Serper); optional */
+  webSearchContext?: string | null;
 }
 
 const SYSTEM_PREFIX = `You are an expert job search assistant. You help the user with personalized, professional content for their job hunt.
@@ -27,6 +29,7 @@ Write in a natural human tone:
 - Sound confident and specific, but not stiff or overly formal.
 - Prefer concrete examples from the provided context over vague claims.
 - Do not invent facts that are not in the context.
+- When a "Recent web search" section is present, use it for up-to-date facts (products, news, hiring). Treat snippets as unverified; prefer them over stale spreadsheet-only data for current events.
 
 Output in the requested format (e.g. email, cover letter, markdown).`;
 
@@ -169,6 +172,10 @@ export function buildPrompt(ctx: PromptContext): { system: string; user: string 
   if (ctx.portfolioContent && ctx.portfolioContent.trim().length > 0) {
     sections.push('### Portfolio (additional context)');
     sections.push(ctx.portfolioContent.trim());
+  }
+  if (ctx.webSearchContext && ctx.webSearchContext.trim().length > 0) {
+    sections.push('### Recent web search (live, may be incomplete)');
+    sections.push(ctx.webSearchContext.trim());
   }
   sections.push('### Company/companies', companySection, '## User request', ctx.userPrompt);
 

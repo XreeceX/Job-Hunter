@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrCreateProfile, upsertProfileQaItems } from '@/lib/services/user-profile.service';
 import { buildPromptWithIntent, fetchPortfolioContent } from '@/lib/services/prompt-builder.service';
+import { fetchWebSearchContext } from '@/lib/services/web-search.service';
 import { generate } from '@/lib/services/ai-execution.service';
 import { isLLMConfigured } from '@/lib/services/ai';
 import { z } from 'zod';
@@ -148,11 +149,17 @@ export async function POST(request: NextRequest) {
 
     const profile = followUpAnswers.length > 0 ? await getOrCreateProfile() : initialProfile;
 
-    const portfolioContent = await fetchPortfolioContent();
-
     // When user provides image attachments, use those as primary context—ignore table selection
     // (e.g. pasted Woven application should not use previously selected Quantinuum rows)
     const effectiveCompanyRows = attachments.length > 0 ? [] : orderedRows;
+
+    const [portfolioContent, webSearch] = await Promise.all([
+      fetchPortfolioContent(),
+      fetchWebSearchContext({
+        userPrompt,
+        companyRows: effectiveCompanyRows.map((r) => ({ data: r.data })),
+      }),
+    ]);
 
     const ctx = {
       profile,
@@ -161,6 +168,7 @@ export async function POST(request: NextRequest) {
       intentHint,
       portfolioContent,
       hasAttachments: attachments.length > 0,
+      webSearchContext: webSearch.text,
     };
 
     if (!isLLMConfigured()) {
@@ -184,6 +192,7 @@ export async function POST(request: NextRequest) {
           needsUserInput: true,
           question: missingInfo.question,
           sameCompanyCheck: true,
+          webSearch: webSearch.meta,
         });
       }
     }
@@ -203,6 +212,7 @@ export async function POST(request: NextRequest) {
       text: result.text,
       model: result.model,
       usage: result.usage,
+      webSearch: webSearch.meta,
     });
   } catch (e) {
     console.error('Generate error:', e);

@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { buildPromptWithIntent, fetchPortfolioContent } from '@/lib/services/prompt-builder.service';
+import { fetchWebSearchContext } from '@/lib/services/web-search.service';
 import { generate } from '@/lib/services/ai-execution.service';
 import { isLLMConfigured } from '@/lib/services/ai';
 import { getOrCreateProfile, upsertProfileQaItems } from '@/lib/services/user-profile.service';
@@ -280,9 +281,26 @@ export async function POST(request: NextRequest) {
     }
 
     const profile = await getOrCreateProfile();
-    const portfolioContent = await fetchPortfolioContent();
     const companyRows = [{ id: 'external-job', data: buildCompanyData(normalizedJob) }];
     const userPrompt = buildApplyUserPrompt(normalizedQuestions);
+
+    const searchHint = [
+      typeof normalizedJob.companyName === 'string' ? normalizedJob.companyName : '',
+      typeof normalizedJob.company === 'string' ? normalizedJob.company : '',
+      typeof normalizedJob.role === 'string' ? normalizedJob.role : '',
+      normalizedQuestions[0]?.question ?? '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const [portfolioContent, webSearch] = await Promise.all([
+      fetchPortfolioContent(),
+      fetchWebSearchContext({
+        userPrompt: searchHint.length >= 12 ? searchHint : userPrompt.slice(0, 500),
+        companyRows: companyRows.map((r) => ({ data: r.data })),
+      }),
+    ]);
 
     const { system, user } = buildPromptWithIntent({
       profile,
@@ -290,6 +308,7 @@ export async function POST(request: NextRequest) {
       userPrompt,
       intentHint: intentHint ?? 'custom',
       portfolioContent,
+      webSearchContext: webSearch.text,
     });
 
     const result = await generate({
@@ -337,6 +356,7 @@ export async function POST(request: NextRequest) {
         status: 'needs_user_input',
         question: applyResult.followUpQuestion,
         model: modelUsed,
+        webSearch: webSearch.meta,
       });
     }
 
@@ -346,6 +366,7 @@ export async function POST(request: NextRequest) {
       answers,
       model: modelUsed,
       usage,
+      webSearch: webSearch.meta,
     });
   } catch (e) {
     console.error('Apply route error:', e);
