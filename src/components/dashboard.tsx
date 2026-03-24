@@ -12,6 +12,7 @@ import { AnimatedNumber } from '@/components/animated-number';
 import { CompaniesTableSkeleton } from '@/components/companies-table-skeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { interactiveCardClass } from '@/lib/ui';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { FileSpreadsheet, User, Rows3, Sparkles } from 'lucide-react';
 
 export interface UploadSummary {
@@ -278,15 +279,18 @@ export function Dashboard() {
             </span>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setProfileOpen(true)}
-          className="shrink-0 gap-2 self-start transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:hover:scale-100 md:self-auto"
-        >
-          <User className="h-4 w-4" />
-          Profile &amp; resume
-        </Button>
+        <div className="flex shrink-0 flex-wrap items-center gap-2 self-start md:self-auto">
+          <ThemeToggle />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setProfileOpen(true)}
+            className="gap-2 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:hover:scale-100 hover:border-[var(--border-hover)]"
+          >
+            <User className="h-4 w-4" />
+            Profile &amp; resume
+          </Button>
+        </div>
       </header>
 
       <div className="stagger-children space-y-8">

@@ -14,8 +14,8 @@ const config: Config = {
         mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },
       boxShadow: {
-        glow: '0 0 0 1px var(--border-subtle), 0 8px 32px -8px rgba(0,0,0,0.55)',
-        'glow-sm': '0 0 0 1px var(--border-subtle), 0 4px 16px -4px rgba(0,0,0,0.45)',
+        glow: '0 0 0 1px var(--border-subtle), var(--shadow-glow)',
+        'glow-sm': '0 0 0 1px var(--border-subtle), var(--shadow-glow-sm)',
       },
       keyframes: {
         'fade-in-up': {
