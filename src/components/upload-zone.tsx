@@ -100,8 +100,8 @@ export function UploadZone({ onDone }: UploadZoneProps) {
     <div
       className={`group relative overflow-hidden rounded-xl border border-dashed p-6 text-center transition-all duration-300 ease-out ${
         isDragging
-          ? 'scale-[1.01] border-[var(--accent)]/60 bg-[var(--accent-dim)]/50 shadow-[0_0_0_1px_rgba(134,239,172,0.12),0_12px_40px_-12px_rgba(0,0,0,0.55)] motion-reduce:scale-100'
-          : 'border-[var(--border)] bg-[var(--card-elevated)]/40 hover:border-[var(--accent)]/35 hover:bg-[var(--accent-dim)]/30 hover:shadow-glow-sm'
+          ? 'scale-[1.01] border-[var(--accent)]/55 bg-[var(--accent-dim)] shadow-glow motion-reduce:scale-100'
+          : 'border-[var(--border)] bg-[var(--card-elevated)]/50 hover:border-[var(--accent)]/30 hover:bg-[var(--accent-dim)]/35 hover:shadow-glow-sm'
       } ${isHovered && !isDragging ? 'ring-2 ring-[var(--ring)]/40' : ''}`}
       onDragEnter={onDragEnter}
       onDragLeave={onDragLeave}
@@ -150,7 +150,7 @@ export function UploadZone({ onDone }: UploadZoneProps) {
         </>
       )}
       {success && (
-        <p className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-[var(--accent)]/25 bg-[var(--accent-dim)]/40 px-3 py-2 text-sm text-[var(--accent)]" role="status">
+        <p className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-[var(--success)]/30 bg-[var(--success-dim)] px-3 py-2 text-sm text-[var(--success)]" role="status">
           <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
           {success}
         </p>
