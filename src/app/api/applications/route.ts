@@ -32,6 +32,7 @@ const createSchema = z.object({
     .union([z.string().url(), z.literal(''), z.null()])
     .optional()
     .transform((v) => (v === '' || v === undefined ? null : v)),
+  jdText: z.string().max(500000).nullable().optional(),
   status: z.nativeEnum(ApplicationStatus).optional(),
   appliedDate: z.string().datetime().nullable().optional(),
   notes: z.string().max(50000).nullable().optional(),
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
       company: parsed.data.company,
       title: parsed.data.title,
       postingUrl: parsed.data.postingUrl ?? null,
+      jdText: parsed.data.jdText ?? null,
       status: parsed.data.status,
       appliedDate,
       notes: parsed.data.notes ?? null,

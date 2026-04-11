@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { AiDisclaimer } from '@/components/ai-disclaimer';
 import { interactiveCardClass } from '@/lib/ui';
-import { Plus, Search } from 'lucide-react';
+import { Link2, Loader2, Plus, Search } from 'lucide-react';
 
 type AppRow = {
   id: string;
@@ -45,6 +45,11 @@ export default function ApplicationsPage() {
   const [company, setCompany] = useState('');
   const [title, setTitle] = useState('');
   const [postingUrl, setPostingUrl] = useState('');
+  const [importUrl, setImportUrl] = useState('');
+  const [jdDraft, setJdDraft] = useState('');
+  const [importWarnings, setImportWarnings] = useState<string[]>([]);
+  const [fetchingImport, setFetchingImport] = useState(false);
+  const [runCopilotAfterOpen, setRunCopilotAfterOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -70,6 +75,35 @@ export default function ApplicationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload list when status changes; search uses Refresh / Enter
   }, [status]);
 
+  async function fetchJobUrlPreview() {
+    const u = importUrl.trim();
+    if (u.length < 8) {
+      setError('Paste a full job posting link (https://…).');
+      return;
+    }
+    setFetchingImport(true);
+    setError(null);
+    setImportWarnings([]);
+    try {
+      const res = await fetch('/api/job-url/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: u }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Could not fetch that URL');
+      setPostingUrl(data.normalizedUrl ?? u);
+      setCompany((data.suggestedCompany as string)?.trim() || 'Company (edit me)');
+      setTitle((data.suggestedTitle as string)?.trim() || 'Role title (edit me)');
+      setJdDraft(typeof data.jdText === 'string' ? data.jdText : '');
+      setImportWarnings(Array.isArray(data.warnings) ? data.warnings : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Import failed');
+    } finally {
+      setFetchingImport(false);
+    }
+  }
+
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!company.trim() || !title.trim()) return;
@@ -82,16 +116,22 @@ export default function ApplicationsPage() {
           company: company.trim(),
           title: title.trim(),
           postingUrl: postingUrl.trim() || null,
+          jdText: jdDraft.trim() || null,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Create failed');
+      const newId = data.application?.id as string | undefined;
       setCompany('');
       setTitle('');
       setPostingUrl('');
+      setImportUrl('');
+      setJdDraft('');
+      setImportWarnings([]);
       await load();
-      if (data.application?.id) {
-        window.location.href = `/applications/${data.application.id}`;
+      if (newId) {
+        const q = runCopilotAfterOpen ? '?runCopilot=1' : '';
+        window.location.href = `/applications/${newId}${q}`;
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Create failed');
@@ -122,6 +162,48 @@ export default function ApplicationsPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={onCreate} className="space-y-3">
+                <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--card-elevated)]/40 p-3 space-y-2">
+                  <Label htmlFor="importUrl" className="text-xs text-[var(--muted)]">
+                    Import from job posting URL
+                  </Label>
+                  <div className="flex gap-2">
+                    <input
+                      id="importUrl"
+                      type="url"
+                      className="flex h-10 min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                      value={importUrl}
+                      onChange={(e) => setImportUrl(e.target.value)}
+                      placeholder="https://careers.example.com/jobs/…"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="shrink-0 gap-1"
+                      disabled={fetchingImport}
+                      onClick={() => void fetchJobUrlPreview()}
+                    >
+                      {fetchingImport ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Link2 className="h-4 w-4" />
+                      )}
+                      Fetch
+                    </Button>
+                  </div>
+                  <p className="text-[11px] leading-snug text-[var(--muted)]">
+                    Fills company, role, posting link, and job text when the page allows it. Login-only or heavy
+                    JavaScript sites may not work—paste the JD manually if needed.
+                  </p>
+                  {importWarnings.length > 0 && (
+                    <ul className="list-inside list-disc text-[11px] text-amber-200/90">
+                      {importWarnings.map((w, i) => (
+                        <li key={i}>{w}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
                 <div className="space-y-1">
                   <Label htmlFor="company">Company</Label>
                   <input
@@ -155,6 +237,19 @@ export default function ApplicationsPage() {
                     placeholder="https://"
                   />
                 </div>
+                <label className="flex cursor-pointer items-start gap-2 text-xs text-[var(--foreground-muted)]">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 rounded border-[var(--border)]"
+                    checked={runCopilotAfterOpen}
+                    onChange={(e) => setRunCopilotAfterOpen(e.target.checked)}
+                  />
+                  <span>
+                    After opening, try to run <strong className="text-[var(--foreground)]">Analyze JD</strong> and{' '}
+                    <strong className="text-[var(--foreground)]">Generate</strong> using your saved resume (may take a
+                    minute; needs an API key in Settings).
+                  </span>
+                </label>
                 <Button type="submit" disabled={creating} className="w-full">
                   {creating ? 'Creating…' : 'Create & open'}
                 </Button>

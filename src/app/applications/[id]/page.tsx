@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { AiDisclaimer } from '@/components/ai-disclaimer';
 import { CopyButton } from '@/components/copy-button';
 import { interactiveCardClass } from '@/lib/ui';
-import { ArrowLeft, Download, Loader2, Save, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowLeft, Download, Link2, Loader2, Save, Sparkles, Wand2 } from 'lucide-react';
 
 type GenPack = {
   resume_bullets?: Array<{ original: string; suggested: string; rationale?: string }>;
@@ -57,7 +57,11 @@ export default function ApplicationDetailPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [warnings, setWarnings] = useState<string[]>([]);
 
-  const [busy, setBusy] = useState<'analyze' | 'generate' | 'save' | null>(null);
+  const [busy, setBusy] = useState<'analyze' | 'generate' | 'save' | 'fetchUrl' | null>(null);
+  const [metaCompany, setMetaCompany] = useState('');
+  const [metaTitle, setMetaTitle] = useState('');
+  const [metaPostingUrl, setMetaPostingUrl] = useState('');
+  const copilotStartedRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -69,6 +73,9 @@ export default function ApplicationDetailPage() {
       if (!res.ok) throw new Error(data.error ?? 'Not found');
       const a = data.application as AppDetail;
       setApp(a);
+      setMetaCompany(a.company ?? '');
+      setMetaTitle(a.title ?? '');
+      setMetaPostingUrl(a.postingUrl ?? '');
       setJdText(a.jdText ?? '');
       setNotes(a.notes ?? '');
       setStatus(a.status);
@@ -100,6 +107,90 @@ export default function ApplicationDetailPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!id || !app || copilotStartedRef.current) return;
+    if (typeof window === 'undefined') return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('runCopilot') !== '1') return;
+    const jd = (app.jdText ?? '').trim();
+    if (jd.length < 10) {
+      copilotStartedRef.current = true;
+      window.history.replaceState({}, '', `/applications/${id}`);
+      setError('Automatic copilot needs job description text. Use Analyze JD and Generate below.');
+      return;
+    }
+    copilotStartedRef.current = true;
+    window.history.replaceState({}, '', `/applications/${id}`);
+    void (async () => {
+      setError(null);
+      try {
+        setBusy('analyze');
+        const ar = await fetch(`/api/applications/${id}/analyze-jd`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jdText: jd }),
+        });
+        const ad = await ar.json();
+        if (!ar.ok) throw new Error(ad.error ?? 'Analyze failed');
+        setJdAnalysis(ad.jd_analysis);
+        setAnalyzeOffline(Boolean(ad.offline));
+        if (ad.application) setApp(ad.application as AppDetail);
+        setBusy('generate');
+        const gr = await fetch(`/api/applications/${id}/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jdText: jd }),
+        });
+        const gd = await gr.json();
+        if (!gr.ok) throw new Error(gd.error ?? 'Generate failed');
+        setCoverLetter(gd.cover_letter ?? '');
+        setBullets(gd.resume_bullets ?? []);
+        setAnswers(gd.answers ?? {});
+        setWarnings(gd.warnings ?? []);
+        setGen({
+          resume_bullets: gd.resume_bullets,
+          cover_letter: gd.cover_letter,
+          answers: gd.answers,
+          warnings: gd.warnings,
+          offline: gd.offline,
+        });
+        if (gd.application) setApp(gd.application as AppDetail);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Automatic copilot failed — use Analyze and Generate manually.');
+      } finally {
+        setBusy(null);
+      }
+    })();
+  }, [id, app]);
+
+  async function refreshFromPostingUrl() {
+    if (!id) return;
+    setBusy('fetchUrl');
+    setError(null);
+    try {
+      const res = await fetch(`/api/applications/${id}/fetch-posting`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metaPostingUrl.trim() ? { url: metaPostingUrl.trim() } : {}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Could not refresh from URL');
+      const a = data.application as AppDetail;
+      setApp(a);
+      setMetaCompany(a.company ?? '');
+      setMetaTitle(a.title ?? '');
+      setMetaPostingUrl(a.postingUrl ?? '');
+      setJdText(a.jdText ?? '');
+      if (Array.isArray(data.warnings) && data.warnings.length) {
+        setWarnings((prev) => [...data.warnings, ...prev].slice(0, 30));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Refresh failed');
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function saveMeta() {
     if (!id) return;
     setBusy('save');
@@ -109,6 +200,9 @@ export default function ApplicationDetailPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          company: metaCompany.trim(),
+          title: metaTitle.trim(),
+          postingUrl: metaPostingUrl.trim() || null,
           status,
           notes: notes || null,
           jdText: jdText || null,
@@ -117,7 +211,11 @@ export default function ApplicationDetailPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Save failed');
-      setApp(data.application);
+      const a = data.application as AppDetail;
+      setApp(a);
+      setMetaCompany(a.company ?? '');
+      setMetaTitle(a.title ?? '');
+      setMetaPostingUrl(a.postingUrl ?? '');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
@@ -242,14 +340,19 @@ export default function ApplicationDetailPage() {
       </div>
 
       <div className="mb-6 space-y-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{app?.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{metaTitle || app?.title}</h1>
         <p className="text-[var(--foreground-muted)]">
-          {app?.company}
-          {app?.postingUrl && (
+          {metaCompany || app?.company}
+          {(metaPostingUrl || app?.postingUrl) && (
             <>
               {' '}
               ·{' '}
-              <a href={app.postingUrl} className="text-[var(--accent)] hover:underline" target="_blank" rel="noreferrer">
+              <a
+                href={(metaPostingUrl || app?.postingUrl) ?? '#'}
+                className="text-[var(--accent)] hover:underline"
+                target="_blank"
+                rel="noreferrer"
+              >
                 Posting
               </a>
             </>
@@ -270,6 +373,57 @@ export default function ApplicationDetailPage() {
             <CardTitle className="text-base">Application meta</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="metaPostingUrl">Posting URL</Label>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  id="metaPostingUrl"
+                  type="url"
+                  className="flex h-10 min-w-[200px] flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                  value={metaPostingUrl}
+                  onChange={(e) => setMetaPostingUrl(e.target.value)}
+                  placeholder="https://"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="gap-1"
+                  disabled={busy === 'fetchUrl'}
+                  onClick={() => void refreshFromPostingUrl()}
+                >
+                  {busy === 'fetchUrl' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Link2 className="h-4 w-4" />
+                  )}
+                  Refresh from URL
+                </Button>
+              </div>
+              <p className="text-[11px] text-[var(--muted)]">
+                Re-downloads the page and updates job text when the site allows it.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="metaCompany">Company</Label>
+              <input
+                id="metaCompany"
+                className="flex h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                value={metaCompany}
+                onChange={(e) => setMetaCompany(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="metaTitle">Role title</Label>
+              <input
+                id="metaTitle"
+                className="flex h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                value={metaTitle}
+                onChange={(e) => setMetaTitle(e.target.value)}
+                maxLength={500}
+              />
+            </div>
             <div className="space-y-1">
               <Label>Status</Label>
               <select

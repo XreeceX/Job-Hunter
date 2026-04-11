@@ -33,6 +33,7 @@ export interface CreateApplicationInput {
   status?: ApplicationStatus;
   appliedDate?: Date | null;
   notes?: string | null;
+  jdText?: string | null;
 }
 
 export interface UpdateApplicationInput {
@@ -58,6 +59,7 @@ export async function createApplication(input: CreateApplicationInput): Promise<
       status: input.status ?? 'WISHLIST',
       appliedDate: input.appliedDate ?? null,
       notes: input.notes ?? null,
+      jdText: input.jdText ?? null,
     },
   });
 }

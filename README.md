@@ -13,6 +13,7 @@ Personal **job-hunting assistant**: import spreadsheets with automatic column de
 ## Contents
 
 - [Features](#features)
+- [Non-technical: run locally](#non-technical-run-locally)
 - [Security & secrets (GitHub)](#security--secrets-github)
 - [Deploy on Vercel](#deploy-on-vercel)
 - [Environment variables (Vercel)](#environment-variables-vercel)
@@ -34,8 +35,19 @@ Personal **job-hunting assistant**: import spreadsheets with automatic column de
 | **Profile & resume** | Name, skills, PDF/text resume (text extracted for prompts). |
 | **AI prompt panel** | Cold email, cover letter, research, interview Q&A from selected rows + profile. |
 | **Application Copilot** | Per-role JD analysis, tailored resume bullets, cover letter drafts, short answers; export Markdown. |
+| **Import from job URL** | Paste a public **https** job posting link to auto-fill company, title, posting URL, and job description text when the page allows it (JSON-LD / visible HTML). Login-only or bot-blocking sites may require pasting the JD manually—see in-app warnings. |
 
 **Stack:** Next.js 14 (App Router), React, TypeScript, Tailwind, Prisma, PostgreSQL, Groq or OpenAI-compatible LLMs.
+
+---
+
+## Non-technical: run locally
+
+If you cloned or downloaded the project but are not a developer, use the step-by-step guide (Node.js install, `.env`, free Postgres, run `npm run dev`):
+
+**[docs/GETTING_STARTED_LOCAL.md](docs/GETTING_STARTED_LOCAL.md)**
+
+On your machine, leave **`BLOB_READ_WRITE_TOKEN`** unset so resumes store under `./uploads` instead of Vercel Blob.
 
 ---
 
@@ -131,6 +143,8 @@ Architecture: one Next.js app and Prisma schema (no separate FastAPI server). Co
 | POST | `/api/applications/{id}/analyze-jd` | Store JD + structured analysis |
 | POST | `/api/applications/{id}/generate` | Tailored drafts (+ optional `jdText` in body) |
 | GET | `/api/applications/{id}/export-md` | Markdown download |
+| POST | `/api/job-url/preview` | Body `{ "url": "https://..." }` — parse posting text (no DB write) |
+| POST | `/api/applications/{id}/fetch-posting` | Re-fetch saved or provided URL and update JD fields |
 
 Longer internal docs: `ARCHITECTURE.md`, `PROMPT_FLOW.md`, `SECURITY.md`.
 
