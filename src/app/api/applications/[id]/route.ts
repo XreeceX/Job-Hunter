@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ApplicationStatus } from '@prisma/client';
 import {
+  deleteApplication,
   getApplication,
   updateApplication,
   serializeJobApplication,
@@ -90,6 +91,26 @@ export async function PATCH(
     console.error('application patch error:', e instanceof Error ? e.message : e);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : 'Failed to update application' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+    const ok = await deleteApplication(id);
+    if (!ok) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error('application delete error:', e instanceof Error ? e.message : e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : 'Failed to delete application' },
       { status: 500 }
     );
   }

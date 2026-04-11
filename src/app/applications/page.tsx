@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { AiDisclaimer } from '@/components/ai-disclaimer';
 import { interactiveCardClass } from '@/lib/ui';
-import { Link2, Loader2, Plus, Search } from 'lucide-react';
+import { Link2, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 
 type AppRow = {
   id: string;
@@ -50,6 +50,7 @@ export default function ApplicationsPage() {
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [fetchingImport, setFetchingImport] = useState(false);
   const [runCopilotAfterOpen, setRunCopilotAfterOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -101,6 +102,28 @@ export default function ApplicationsPage() {
       setError(e instanceof Error ? e.message : 'Import failed');
     } finally {
       setFetchingImport(false);
+    }
+  }
+
+  async function deleteRow(id: string, label: string) {
+    if (
+      !window.confirm(
+        `Delete this application?\n\n${label}\n\nThis cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setDeletingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/applications/${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Delete failed');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -308,7 +331,8 @@ export default function ApplicationsPage() {
                         <th className="pb-2 pr-3 font-medium">Company</th>
                         <th className="pb-2 pr-3 font-medium">Role</th>
                         <th className="pb-2 pr-3 font-medium">Status</th>
-                        <th className="pb-2 font-medium">Updated</th>
+                        <th className="pb-2 pr-3 font-medium">Updated</th>
+                        <th className="pb-2 w-[4.5rem] text-right font-medium" aria-label="Actions" />
                       </tr>
                     </thead>
                     <tbody>
@@ -332,8 +356,30 @@ export default function ApplicationsPage() {
                               {r.status}
                             </span>
                           </td>
-                          <td className="py-2 tabular-nums text-[var(--foreground-muted)]">
+                          <td className="py-2 pr-3 tabular-nums text-[var(--foreground-muted)]">
                             {new Date(r.updatedAt).toLocaleString()}
+                          </td>
+                          <td className="py-2 text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-[var(--muted)] hover:text-[var(--danger)]"
+                              disabled={deletingId === r.id}
+                              title="Delete application"
+                              aria-label={`Delete ${r.company} — ${r.title}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void deleteRow(r.id, `${r.company} — ${r.title}`);
+                              }}
+                            >
+                              {deletingId === r.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
                           </td>
                         </tr>
                       ))}

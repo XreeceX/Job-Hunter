@@ -94,6 +94,13 @@ export async function getApplication(id: string): Promise<JobApplication | null>
   });
 }
 
+export async function deleteApplication(id: string): Promise<boolean> {
+  const existing = await getApplication(id);
+  if (!existing) return false;
+  await prisma.jobApplication.delete({ where: { id } });
+  return true;
+}
+
 export async function updateApplication(
   id: string,
   input: UpdateApplicationInput

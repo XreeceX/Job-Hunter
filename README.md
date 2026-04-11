@@ -139,7 +139,7 @@ Architecture: one Next.js app and Prisma schema (no separate FastAPI server). Co
 | GET | `/api/settings` | Non-secret LLM summary (provider, model override, whether a key is set) |
 | POST | `/api/test-llm` | Minimal LLM check |
 | POST/GET | `/api/applications` | Create / list applications |
-| GET/PATCH | `/api/applications/{id}` | Read / update |
+| GET/PATCH/DELETE | `/api/applications/{id}` | Read / update / delete |
 | POST | `/api/applications/{id}/analyze-jd` | Store JD + structured analysis |
 | POST | `/api/applications/{id}/generate` | Tailored drafts (+ optional `jdText` in body) |
 | GET | `/api/applications/{id}/export-md` | Markdown download |
