@@ -1,200 +1,195 @@
 # Job Hunter
 
-AI-powered job hunting web app for a single user: upload spreadsheets, map columns automatically, store profile and resume, and generate personalized content (cold emails, cover letters, research, interview Q&A) via natural-language prompts.
+[![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 
-## Stack
+Personal **job-hunting assistant**: import spreadsheets with automatic column detection, store your **profile and resume**, generate outreach copy with AI, and use the **Job Application Copilot** to track roles, analyze job descriptions, and draft tailored bullets and cover letters.
 
-- **Frontend:** Next.js 14 (App Router), React, TypeScript, Tailwind CSS
-- **Backend:** Next.js API routes
-- **Database:** PostgreSQL with Prisma
-- **AI:** Provider-agnostic (Groq default, OpenAI optional) via `src/lib/services/ai/`
-- **Excel:** SheetJS (xlsx)
-- **Deploy:** Vercel-ready
-
-## Setup
-
-1. **Clone and install**
-
-   ```bash
-   cd "Job hunter"
-   npm install
-   ```
-
-2. **Environment**
-
-   Copy `.env.example` to `.env` and set:
-
-   - `DATABASE_URL` – PostgreSQL connection string
-   - **AI:** Set `LLM_PROVIDER` and the matching API key (see below).
-
-3. **Database**
-
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
-
-   **First time with Neon (or any new empty DB):** The tables (`User`, `Upload`, etc.) must exist. From your machine, run the above **once** with `DATABASE_URL` pointing at your Neon DB (copy from Vercel → Project → Settings → Environment Variables, or from Neon dashboard). After `prisma db push` succeeds, the app and Vercel will work.
-
-4. **Run**
-
-   ```bash
-   npm run dev
-   ```
-
-   Open [http://localhost:3000](http://localhost:3000).
-
-## Usage
-
-1. **Upload** – Drag or select an Excel (.xlsx/.xls) or CSV file. Headers and columns are parsed and inferred (company, email, role, etc.) without assuming column names.
-2. **Profile** – Open “Profile & Resume” to set name, target role, experience, skills, and upload a PDF resume (text is extracted for AI).
-3. **Companies** – Pick an upload and select one or more rows (companies).
-4. **Prompt** – Choose an optional intent (cold email, cover letter, research, interview Q&A) and type a request. Click Generate to get personalized, editable output; copy as needed.
-
-## Project layout
-
-- `src/app/` – App Router pages and API routes
-- `src/lib/services/` – Excel ingestion, column inference, profile, prompt builder, AI execution
-- `src/lib/types/` – Shared types and semantic keys
-- `src/components/` – React UI (dashboard, upload, company table, prompt panel, profile)
-- `prisma/schema.prisma` – Data models
-
-See `ARCHITECTURE.md` for design and data flow.
-
-## Example prompt flow
-
-- **Cold email:** Select one company → Intent “Cold email” → Request: “Write a short cold email introducing me and my interest in the role.” → Generate.
-- **Cover letter:** Select one company → Intent “Cover letter” → Request: “Write a one-page cover letter.” → Generate.
-- **Research:** Select one company → Intent “Research company” → Request: “Summarize this company and role for interview prep.” → Generate.
-
-All outputs use your profile and resume and the selected company row(s); no column names are hardcoded.
-
-## Job Tracker Integration (`/api/apply`)
-
-Use this route when another project (like `Job Tracker`) sends job data and application questions for this project to curate answers.
-
-- **Endpoint:** `POST /api/apply`
-- **Behavior:** Returns a direct JSON reply to the same call.
-  - `status: "completed"` with curated answers when context is sufficient.
-  - `status: "needs_user_input"` with a single follow-up question when required information is missing.
-- **Memory:** If caller sends `followUpAnswers`, answers are saved to profile `customQa` and reused later.
-
-Example request:
-
-```json
-{
-  "job": {
-    "companyName": "Acme",
-    "role": "Software Engineer Intern",
-    "location": "Remote",
-    "url": "https://acme.com/jobs/123",
-    "description": "Build internal tools with React + Node."
-  },
-  "applicationQuestions": [
-    { "id": "q1", "question": "Why do you want to join Acme?", "required": true },
-    { "id": "q2", "question": "What is your expected graduation date?", "required": true }
-  ]
-}
-```
-
-`applicationQuestions` can also be plain strings:
-
-```json
-{
-  "company": "Acme",
-  "role": "Software Engineer Intern",
-  "applicationQuestions": [
-    "Are you legally authorized to work in the UK?",
-    "What is your expected graduation date?"
-  ]
-}
-```
-
-Example follow-up request (after user answers):
-
-```json
-{
-  "job": { "companyName": "Acme", "role": "Software Engineer Intern" },
-  "applicationQuestions": [
-    { "id": "q2", "question": "What is your expected graduation date?", "required": true }
-  ],
-  "followUpAnswers": [
-    { "question": "What is your expected graduation date?", "answer": "May 2027" }
-  ]
-}
-```
-
-## AI: Local dev vs Vercel production
-
-The app uses a **provider-agnostic** AI layer (`src/lib/services/ai/`). No OpenAI (or Groq) is imported outside that folder.
-
-- **Production default (Vercel):** **Groq**  
-  Set `LLM_PROVIDER=groq` and `GROQ_API_KEY`. Groq offers a free hosted tier, OpenAI-compatible chat API, and is serverless-friendly (no cold-start issues). Default model: `llama-3.3-70b-versatile`.
-
-- **Local / fallback:** **OpenAI**  
-  Set `LLM_PROVIDER=openai` and `OPENAI_API_KEY` if you prefer GPT for generation or column inference.
-
-Only one provider is active at a time; the rest of the app calls `runLLM()` and does not depend on which provider is configured.
-
-## Running 24/7 (no Postgres on your laptop)
-
-To run the app 24/7 without keeping Postgres (or your laptop) on:
-
-1. **Deploy to Vercel**  
-   Connect the repo to Vercel and deploy. The app runs on Vercel’s infra.
-
-2. **Use a hosted database**  
-   You don’t run Postgres locally. Use a hosted Postgres and set `DATABASE_URL`:
-   - **Vercel Marketplace:** In the Vercel project, go to Storage (or Integrations), add **Neon** (or another Postgres). Vercel will add `POSTGRES_URL` or `DATABASE_URL` to the project. If the provider exposes `POSTGRES_URL`, set `DATABASE_URL` in Project Settings → Environment Variables to that value (or use the variable name your provider gives).
-   - **Any other host:** Neon, Supabase, Railway, etc. Create a database, copy the connection string, and set `DATABASE_URL` in Vercel (and in `.env` for local dev against the same DB).
-
-3. **Resume storage**  
-   On Vercel, serverless has no persistent disk. Add a **Vercel Blob** store in the project (Storage → Create → Blob). The `BLOB_READ_WRITE_TOKEN` is set automatically; resume uploads will use Blob instead of local files. For local dev, omit the token and resumes are stored in `./uploads` (or `UPLOAD_DIR`).
-
-4. **Env summary for 24/7**  
-   In Vercel: `DATABASE_URL` (hosted Postgres), `LLM_PROVIDER` + `GROQ_API_KEY` (or OpenAI), and Blob token if you use a Blob store. No need to run Postgres (or the app) on your laptop.
-
-## Troubleshooting
-
-**Fix: Company list not loading (“No company list provided” / “Server returned an unexpected response”)**
-
-Your uploads are saved in Neon, but the app can’t load the list. Do these in order:
-
-1. **Use Neon’s pooled connection string on Vercel**
-   - Open [Neon Console](https://console.neon.tech) → your **Job_hunter** project.
-   - Go to **Connection details** (or Dashboard).
-   - Copy the **“Pooled”** connection string (host must contain **`-pooler`**, e.g. `ep-xxx-pooler.eu-west-2.aws.neon.tech`). Do **not** use the direct (non-pooled) one for Vercel.
-   - In **Vercel** → your project → **Settings** → **Environment Variables**:
-     - Set **`DATABASE_URL`** to that pooled string (for **Production**, and **Preview** if you use it).
-     - If `DATABASE_URL` already exists, edit it and replace with the pooled URL.
-   - **Redeploy**: Deployments → … on latest → **Redeploy** (or push a commit). Env changes apply only after a new deployment.
-
-2. **Confirm the list request in Vercel**
-   - Open the deployed app and refresh (or click Retry in the Spreadsheet section).
-   - In **Vercel** → **Logs**, filter or search for **`/api/uploads`**.
-   - You should see **GET /api/uploads** with status **200**. If you see **500**, **502**, **---**, or no entry, the function is failing or timing out; the pooled URL from step 1 usually fixes that.
-
-3. **If it still fails**
-   - In Logs, open the **GET /api/uploads** entry and check the error message (e.g. connection refused, timeout).
-   - Ensure **DATABASE_URL** in Vercel has no extra spaces and includes `?sslmode=require` at the end of the URL.
-
-After the list loads, you’ll see “Recent uploads” and the company table; select an upload and one or more companies, then **Generate** will include the company list and the AI will use it.
+**This app does not** automate employer logins, mass-submit forms, or click “Apply” for you. You review everything and paste into career sites yourself.
 
 ---
 
-**Already using the pooled URL but still getting an error page?**
+## Contents
 
-- **Cold start / timeout:** On Vercel, the first request after a deploy (or after idle) can be slow. If the function doesn't respond in time, Vercel returns an HTML error (504 or 502) instead of JSON. **Vercel Hobby** has a **10 second** function limit; **Pro** allows 60s.
-- **Test the DB:** Open **`https://your-app.vercel.app/api/health`** in a new tab. If you see `{"ok":true}`, the database connection works and the problem is likely the uploads request timing out. If you see an error page there too, the function is timing out or failing before it can run.
-- **What to do:** Wait 10–15 seconds and click **Retry** (or refresh the page) so the next request may hit a warm function. If it keeps failing on Hobby, consider **Vercel Pro** for longer timeouts, or visit `/api/health` first to warm up, then open the dashboard.
+- [Features](#features)
+- [Security & secrets (GitHub)](#security--secrets-github)
+- [Deploy on Vercel](#deploy-on-vercel)
+- [Environment variables (Vercel)](#environment-variables-vercel)
+- [Local development](#local-development)
+- [Job Application Copilot](#job-application-copilot)
+- [API overview](#api-overview)
+- [Job Tracker integration (`/api/apply`)](#job-tracker-integration-apiapply)
+- [AI providers](#ai-providers)
+- [Troubleshooting](#troubleshooting)
+- [Publishing a GitHub release](#publishing-a-github-release)
 
-**"Login required" / spreadsheets never load**
+---
 
-- If your Vercel project has **Deployment Protection** (e.g. "Vercel Authentication" or "Password"), the browser's request to `/api/uploads` gets a **401/403** and an HTML login page instead of JSON, so the app shows "Couldn't load spreadsheets."
-- **Fix:** In **Vercel** → your project → **Settings** → **Deployment Protection**, either **disable protection for Production** (so the live app is public) or set it to **"Only Preview"** so Production deployments are public and the app can load data. Then redeploy or refresh the app.
+## Features
 
-**"Server returned an unexpected response" (same cause)**  
-- The app’s **GET /api/uploads** is receiving an HTML error page instead of JSON. Follow the “Fix: Company list not loading” steps above (pooled Neon URL + redeploy). If you already use the pooled URL, see "Already using the pooled URL but still getting an error page?" above. If you see a login screen when opening the app, see "Login required" above.
+| Area | What it does |
+|------|----------------|
+| **Spreadsheet import** | Upload CSV/Excel; columns inferred (company, email, role, etc.) without fixed column names. |
+| **Profile & resume** | Name, skills, PDF/text resume (text extracted for prompts). |
+| **AI prompt panel** | Cold email, cover letter, research, interview Q&A from selected rows + profile. |
+| **Application Copilot** | Per-role JD analysis, tailored resume bullets, cover letter drafts, short answers; export Markdown. |
 
-**DeprecationWarning: `url.parse()` in logs (Error count)**  
-- The `(node:10) [DEP0169] DeprecationWarning: url.parse()...` comes from a dependency (e.g. OpenAI or Groq SDK), not your code. It does not break upload or generate (both can still return 200). To hide it in Vercel logs, add an environment variable in Vercel → Project → Settings → Environment Variables: **`NODE_OPTIONS`** = **`--no-deprecation`**. Redeploy so it takes effect.
+**Stack:** Next.js 14 (App Router), React, TypeScript, Tailwind, Prisma, PostgreSQL, Groq or OpenAI-compatible LLMs.
+
+---
+
+## Security & secrets (GitHub)
+
+- **Never commit** real API keys, database passwords, or connection strings. This repo uses **`.env.example`** as a template only.
+- **Ignored by Git:** `.env`, `.env.local`, and other env files (see `.gitignore`). Only `.env.example` is meant to be tracked.
+- **Production:** Set all secrets in **Vercel → Project → Settings → Environment Variables** (or your host). Rotate any key that was ever pasted into a commit, issue, or screenshot.
+- **Repository settings:** On GitHub, avoid putting tokens in **public** repo descriptions, wiki, or gists.
+
+---
+
+## Deploy on Vercel
+
+1. Push this repo to GitHub (without `.env`).
+2. Import the repo in [Vercel](https://vercel.com/new) and use the default Next.js settings.
+3. Add a **hosted PostgreSQL** database (e.g. Neon via Vercel Storage, or Supabase/Railway). Use a **pooled** connection string for serverless where the provider recommends it.
+4. Set **environment variables** below for **Production** (and **Preview** if you use preview deployments).
+5. Run **`npx prisma generate`** is part of `npm run build` already; ensure `DATABASE_URL` is set so Prisma can connect at build/runtime.
+6. After changing env vars, **redeploy** so new values apply.
+
+Resume PDFs on Vercel need **Vercel Blob** (or similar): add Blob storage and set `BLOB_READ_WRITE_TOKEN` as documented by Vercel—local dev can use `./uploads` without Blob.
+
+---
+
+## Environment variables (Vercel)
+
+Set these in **Vercel → Project → Settings → Environment Variables**.  
+**Do not** paste real values into GitHub—only names and purpose are listed here.
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DATABASE_URL` | **Yes** | PostgreSQL URL (`sslmode=require` for Neon and many hosts). |
+| `LLM_PROVIDER` | **Yes** (for AI features) | `groq` or `openai`. |
+| `GROQ_API_KEY` | If using Groq | Server-side only; never expose to the browser. |
+| `OPENAI_API_KEY` | If using OpenAI | Same as above. |
+| `LLM_MODEL` | No | Override model ID/name; otherwise the code uses provider defaults. |
+| `BLOB_READ_WRITE_TOKEN` | Recommended on Vercel | From Vercel Blob; resume/cover uploads use Blob instead of disk. |
+| `POSTGRES_URL` | Only if you map it | Some templates inject `POSTGRES_URL`; this app reads **`DATABASE_URL`**—point `DATABASE_URL` at your DB or duplicate the value in Vercel. |
+| `CORS_ORIGIN` | No | e.g. `https://your-app.vercel.app` if you need CORS for `/api/*` from another origin. |
+| `NODE_OPTIONS` | No | e.g. `--no-deprecation` to quiet Node deprecation noise in logs. |
+
+Optional (see `.env.example`): web search keys, `PORTFOLIO_URL`, `UPLOAD_DIR` (local only).
+
+Copy **`.env.example` → `.env`** locally; mirror the same **names** in Vercel with **your** secret values.
+
+---
+
+## Local development
+
+```bash
+git clone <your-repo-url>
+cd job-hunter
+npm install
+cp .env.example .env
+# Edit .env: DATABASE_URL, LLM_PROVIDER, and the matching API key
+
+npx prisma generate
+npx prisma db push
+
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+**Windows:** Quote paths with spaces, e.g. `cd "C:\path\to\job-hunter"`.
+
+**Tests (optional):** `npm test`
+
+---
+
+## Job Application Copilot
+
+- **Baseline resume:** Home → **Profile & resume** (paste or upload PDF).
+- **Applications:** Top nav → **Applications** → create a role, paste JD → **Analyze JD** → **Generate**. Edit, copy, or **Export .md**.
+- **Settings:** Top nav → **Settings** — checks `/api/health` and `/api/test-llm`.
+
+Without an LLM API key, analysis/generation fall back to **offline keyword/template** mode with clear warnings.
+
+Architecture: one Next.js app and Prisma schema (no separate FastAPI server). Copilot routes live under `src/app/api/applications/` and pages under `src/app/applications/`.
+
+---
+
+## API overview
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/health` | Database connectivity |
+| GET | `/api/settings` | Non-secret LLM summary (provider, model override, whether a key is set) |
+| POST | `/api/test-llm` | Minimal LLM check |
+| POST/GET | `/api/applications` | Create / list applications |
+| GET/PATCH | `/api/applications/{id}` | Read / update |
+| POST | `/api/applications/{id}/analyze-jd` | Store JD + structured analysis |
+| POST | `/api/applications/{id}/generate` | Tailored drafts (+ optional `jdText` in body) |
+| GET | `/api/applications/{id}/export-md` | Markdown download |
+
+Longer internal docs: `ARCHITECTURE.md`, `PROMPT_FLOW.md`, `SECURITY.md`.
+
+---
+
+## Job Tracker integration (`/api/apply`)
+
+External tools can POST job data and application questions; responses may be `completed` or `needs_user_input`. See examples in older docs or `src/app/api/apply/` — request/response shapes are JSON.
+
+---
+
+## AI providers
+
+- **Groq** (common on Vercel): `LLM_PROVIDER=groq`, `GROQ_API_KEY`.
+- **OpenAI:** `LLM_PROVIDER=openai`, `OPENAI_API_KEY`.
+
+Only one provider is active at a time (`src/lib/services/ai/`).
+
+---
+
+## Troubleshooting
+
+- **DB / uploads errors on Vercel:** Use your host’s **pooled** connection string for serverless; set `DATABASE_URL` in Vercel; redeploy. Check `GET /api/health` on your deployment.
+- **401/403 HTML instead of JSON:** Turn off **Deployment Protection** for Production if the app must be public, or allow API routes accordingly.
+- **Timeouts (Hobby 10s limit):** Cold starts or heavy LLM calls may need retries or a Pro plan with longer limits.
+
+---
+
+## Publishing a GitHub release
+
+1. **Commit and push** your changes to the default branch (e.g. `main`).
+2. On GitHub: **Releases** → **Create a new release** (or **Draft a new release**).
+3. **Choose a tag:** e.g. `v1.0.0` — select **Create new tag on publish** if the tag does not exist yet.
+4. **Release title:** e.g. `v1.0.0`.
+5. **Describe** what changed (changelog). You can use **Generate release notes** if GitHub offers it.
+6. **Publish release.**
+
+**From the command line (GitHub CLI):**
+
+```bash
+# Install: https://cli.github.com/
+git tag -a v1.0.0 -m "v1.0.0"
+git push origin v1.0.0
+gh release create v1.0.0 --generate-notes
+```
+
+Optional: attach build artifacts (e.g. `zip` of source **without** `.env`) — not required for a Next.js app deployed from the repo.
+
+---
+
+## Project layout
+
+- `src/app/` — Pages and API routes  
+- `src/lib/services/` — Excel, profile, AI, job copilot  
+- `src/components/` — UI  
+- `prisma/schema.prisma` — Data models  
+
+---
+
+## License
+
+No license file is included in this repository; add a `LICENSE` file if you want to specify terms for others.

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { AmbientBackdrop } from '@/components/ambient-backdrop';
+import { AppNav } from '@/components/app-nav';
 import { THEME_INIT_SCRIPT } from '@/lib/theme';
 import './globals.css';
 
@@ -33,6 +34,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[var(--background)] font-sans antialiased text-[var(--foreground)]">
         <AmbientBackdrop />
+        <AppNav />
         {children}
       </body>
     </html>

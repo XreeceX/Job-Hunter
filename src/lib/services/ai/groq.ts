@@ -21,7 +21,7 @@ function getGroqClient(): Groq {
 }
 
 export async function runGroq(options: RunLLMOptions): Promise<RunLLMResult> {
-  const { system, user, attachments = [], model, maxTokens = 2048 } = options;
+  const { system, user, attachments = [], model, maxTokens = 2048, jsonObject } = options;
   const client = getGroqClient();
 
   const hasImages = attachments.length > 0;
@@ -52,6 +52,7 @@ export async function runGroq(options: RunLLMOptions): Promise<RunLLMResult> {
     messages,
     max_tokens: maxTokens,
     temperature: 0.7,
+    ...(jsonObject && !hasImages ? { response_format: { type: 'json_object' as const } } : {}),
   });
 
   const text = completion.choices[0]?.message?.content?.trim() ?? '';

@@ -12,10 +12,41 @@ datasource db {
 
 // Single-user: one record; id can be fixed or from future auth
 model User {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  profile   UserProfile?
+  id               String            @id @default(cuid())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  profile          UserProfile?
+  jobApplications  JobApplication[]
+}
+
+/// Job application tracker + copilot (company career sites; human submits applications).
+enum ApplicationStatus {
+  WISHLIST
+  APPLIED
+  INTERVIEW
+  REJECTED
+  OFFER
+}
+
+model JobApplication {
+  id              String             @id @default(cuid())
+  userId          String             @map("user_id")
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         String
+  title           String
+  postingUrl      String?            @map("posting_url")
+  status          ApplicationStatus  @default(WISHLIST)
+  appliedDate     DateTime?          @map("applied_date")
+  notes           String?            @db.Text
+  jdText          String?            @map("jd_text") @db.Text
+  jdAnalysis      Json?              @map("jd_analysis")
+  lastGeneration  Json?              @map("last_generation")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("job_applications")
 }
 
 model UserProfile {

@@ -12,6 +12,8 @@ export interface RunLLMOptions {
   }>;
   model?: string;
   maxTokens?: number;
+  /** Ask the model for JSON object output (OpenAI / Groq compatible). */
+  jsonObject?: boolean;
 }
 
 export interface RunLLMResult {

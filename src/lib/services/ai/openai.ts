@@ -18,7 +18,7 @@ function getOpenAIClient(): OpenAI {
 }
 
 export async function runOpenAI(options: RunLLMOptions): Promise<RunLLMResult> {
-  const { system, user, attachments = [], model = 'gpt-4o', maxTokens = 2048 } = options;
+  const { system, user, attachments = [], model = 'gpt-4o', maxTokens = 2048, jsonObject } = options;
   const client = getOpenAIClient();
 
   const textContent = (user || '').trim() || 'Please analyze the image(s) and provide the requested information.';
@@ -41,6 +41,9 @@ export async function runOpenAI(options: RunLLMOptions): Promise<RunLLMResult> {
     ],
     max_tokens: maxTokens,
     temperature: 0.7,
+    ...(jsonObject && attachments.length === 0
+      ? { response_format: { type: 'json_object' as const } }
+      : {}),
   });
 
   const text = completion.choices[0]?.message?.content?.trim() ?? '';

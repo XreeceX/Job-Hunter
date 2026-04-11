@@ -9,12 +9,13 @@ out
 build
 dist
 
-# Env
+# Env (never commit secrets — use Vercel / hosting dashboard for production)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+
+# Vercel CLI link metadata (optional)
+.vercel
 
 # Debug
 npm-debug.log*
