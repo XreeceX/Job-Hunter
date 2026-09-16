@@ -6,8 +6,23 @@
 import Groq from 'groq-sdk';
 import type { RunLLMOptions, RunLLMResult } from './types';
 
-const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+// Groq free/developer chat default. llama-3.3-70b-versatile shut down 16 Aug 2026.
+const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-20b';
 const GROQ_VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+
+const RETIRED_GROQ_MODELS: Record<string, string> = {
+  'llama-3.3-70b-versatile': DEFAULT_GROQ_MODEL,
+  'llama-3.1-8b-instant': DEFAULT_GROQ_MODEL,
+  'llama3-70b-8192': DEFAULT_GROQ_MODEL,
+  'llama3-8b-8192': DEFAULT_GROQ_MODEL,
+  'mixtral-8x7b-32768': DEFAULT_GROQ_MODEL,
+};
+
+function resolveGroqModel(model: string | undefined, hasImages: boolean): string {
+  if (hasImages) return GROQ_VISION_MODEL;
+  const requested = (model || DEFAULT_GROQ_MODEL).trim();
+  return RETIRED_GROQ_MODELS[requested] ?? requested;
+}
 
 let groqClient: Groq | null = null;
 
@@ -25,7 +40,7 @@ export async function runGroq(options: RunLLMOptions): Promise<RunLLMResult> {
   const client = getGroqClient();
 
   const hasImages = attachments.length > 0;
-  const effectiveModel = model ?? (hasImages ? GROQ_VISION_MODEL : DEFAULT_GROQ_MODEL);
+  const effectiveModel = resolveGroqModel(model, hasImages);
 
   // Groq vision models reject separate system + user messages with images.
   // Combine system into user content when using attachments.
